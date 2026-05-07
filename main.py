@@ -1,4 +1,7 @@
+import asyncio
+import json
 import os
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -6,11 +9,11 @@ load_dotenv()
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from ingest import crawl_site, ingest_docx, ingest_pdf, ingest_url
+from ingest import fetch_page, ingest_docx, ingest_pdf, ingest_url
 from rag import RAGEngine
 
 app = FastAPI(title="Chatbot API")
@@ -96,25 +99,53 @@ async def ingest_url_endpoint(body: URLRequest, key: str | None = None):
     return {"status": "ok", "source": body.url, "chunks": added}
 
 
-class CrawlRequest(BaseModel):
-    url: str
-    max_pages: int = 50
-
-
-@app.post("/api/ingest/crawl")
-async def crawl_endpoint(body: CrawlRequest, key: str | None = None):
+@app.get("/api/ingest/crawl/stream")
+async def crawl_stream(url: str, max_pages: int = 50, key: str | None = None):
     check_admin(key)
-    pages = crawl_site(body.url, max_pages=body.max_pages)
-    total_chunks = 0
-    ingested = []
-    for page in pages:
-        if page["chunks"] and not page["error"]:
-            added = rag.add_documents(page["chunks"], source=page["url"])
-            total_chunks += added
-            ingested.append({"url": page["url"], "chunks": added})
-        elif page["error"]:
-            ingested.append({"url": page["url"], "chunks": 0, "error": page["error"]})
-    return {"status": "ok", "pages": len(ingested), "total_chunks": total_chunks, "detail": ingested}
+
+    async def generate():
+        parsed = urlparse(url)
+        domain = parsed.netloc
+        clean_start = parsed._replace(fragment="", query="").geturl().rstrip("/") or url
+
+        seen: set[str] = {clean_start}   # visited + queued, for O(1) dedup
+        queue: list[str] = [clean_start]
+        total_chunks = 0
+        pages_done = 0
+
+        while queue and pages_done < max_pages:
+            current = queue.pop(0)
+            try:
+                result = await asyncio.to_thread(fetch_page, current, domain)
+
+                for link in result["links"]:
+                    if link not in seen:
+                        seen.add(link)
+                        queue.append(link)
+
+                if result["chunks"]:
+                    added = rag.add_documents(result["chunks"], source=current)
+                    total_chunks += added
+                    pages_done += 1
+                    data = {"type": "page", "url": current, "chunks": added,
+                            "done": pages_done, "queued": len(queue)}
+                else:
+                    data = {"type": "skip", "url": current,
+                            "done": pages_done, "queued": len(queue)}
+
+            except Exception as e:
+                data = {"type": "error", "url": current, "error": str(e),
+                        "done": pages_done, "queued": len(queue)}
+
+            yield f"data: {json.dumps(data)}\n\n"
+
+        yield f"data: {json.dumps({'type': 'done', 'pages': pages_done, 'total_chunks': total_chunks})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 # ── Sources ───────────────────────────────────────────────────────────────────

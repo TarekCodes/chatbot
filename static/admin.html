@@ -316,45 +316,61 @@
     }
   }
 
-  document.getElementById('crawl-btn').addEventListener('click', async function() {
+  var activeCrawl = null;
+
+  document.getElementById('crawl-btn').addEventListener('click', function() {
+    if (activeCrawl) { activeCrawl.close(); activeCrawl = null; }
+
     var url = document.getElementById('crawl-url').value.trim();
     var maxPages = parseInt(document.getElementById('crawl-max').value) || 50;
     if (!url) return;
 
     var btn = this;
     btn.disabled = true;
-    btn.textContent = 'Crawling… (this may take a minute)';
-    document.getElementById('crawl-results').style.display = 'none';
+    btn.textContent = 'Crawling…';
 
-    try {
-      var endpoint = apiBase() + '/api/ingest/crawl';
-      if (adminKey()) endpoint += '?key=' + encodeURIComponent(adminKey());
-      var res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url, max_pages: maxPages })
-      });
-      var data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Crawl failed');
+    var log = document.getElementById('crawl-log');
+    var summary = document.getElementById('crawl-summary');
+    log.innerHTML = '';
+    summary.textContent = 'Starting…';
+    document.getElementById('crawl-results').style.display = 'block';
 
-      document.getElementById('crawl-summary').textContent =
-        '✓ Crawled ' + data.pages + ' pages · ' + data.total_chunks + ' chunks indexed';
+    var endpoint = apiBase() + '/api/ingest/crawl/stream?url=' + encodeURIComponent(url) +
+                   '&max_pages=' + maxPages;
+    if (adminKey()) endpoint += '&key=' + encodeURIComponent(adminKey());
 
-      var log = data.detail.map(function(p) {
-        if (p.error) return '✗ ' + p.url + ' — ' + p.error;
-        return '✓ ' + p.url + ' (' + p.chunks + ' chunks)';
-      }).join('<br>');
-      document.getElementById('crawl-log').innerHTML = log;
-      document.getElementById('crawl-results').style.display = 'block';
+    var es = new EventSource(endpoint);
+    activeCrawl = es;
 
-      showToast('Crawl complete: ' + data.pages + ' pages, ' + data.total_chunks + ' chunks');
-      loadSources();
-    } catch(e) {
-      showToast(e.message, true);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Crawl Site';
-    }
+    es.onmessage = function(e) {
+      var d = JSON.parse(e.data);
+
+      if (d.type === 'page') {
+        log.innerHTML += '<span style="color:#16a34a">✓</span> ' + escHtml(d.url) +
+          ' <span style="color:#6b7280">(' + d.chunks + ' chunks)</span><br>';
+        summary.textContent = 'Crawling… ' + d.done + ' pages indexed · ' + d.queued + ' in queue';
+      } else if (d.type === 'skip') {
+        log.innerHTML += '<span style="color:#9ca3af">—</span> ' + escHtml(d.url) +
+          ' <span style="color:#9ca3af">(no text)</span><br>';
+      } else if (d.type === 'error') {
+        log.innerHTML += '<span style="color:#ef4444">✗</span> ' + escHtml(d.url) +
+          ' <span style="color:#ef4444">— ' + escHtml(d.error) + '</span><br>';
+      } else if (d.type === 'done') {
+        summary.textContent = '✓ Done — ' + d.pages + ' pages · ' + d.total_chunks + ' chunks indexed';
+        showToast('Crawl complete: ' + d.pages + ' pages, ' + d.total_chunks + ' chunks');
+        es.close(); activeCrawl = null;
+        btn.disabled = false; btn.textContent = 'Crawl Site';
+        loadSources();
+      }
+
+      log.scrollTop = log.scrollHeight;
+    };
+
+    es.onerror = function() {
+      es.close(); activeCrawl = null;
+      btn.disabled = false; btn.textContent = 'Crawl Site';
+      if (!summary.textContent.startsWith('✓')) showToast('Connection lost during crawl', true);
+    };
   });
 
   async function viewChunks(source) {

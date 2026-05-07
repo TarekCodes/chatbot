@@ -49,6 +49,28 @@ def ingest_url(url: str) -> list[str]:
     return _extract_text(soup)
 
 
+def fetch_page(url: str, domain: str) -> dict:
+    """Fetch one page and return its text chunks and discovered same-domain links."""
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; ChatbotBot/1.0)"}
+    resp = requests.get(url, headers=headers, timeout=15)
+    if "text/html" not in resp.headers.get("content-type", ""):
+        return {"chunks": [], "links": []}
+    resp.raise_for_status()
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    links = []
+    for a in soup.find_all("a", href=True):
+        href = urljoin(url, a["href"])
+        ph = urlparse(href)
+        if ph.netloc == domain and ph.scheme in ("http", "https"):
+            normalised = ph._replace(fragment="", query="").geturl().rstrip("/")
+            if normalised:
+                links.append(normalised)
+
+    return {"chunks": _extract_text(soup), "links": links}
+
+
 def crawl_site(start_url: str, max_pages: int = 50) -> list[dict]:
     """
     Crawl all pages on the same domain as start_url.
