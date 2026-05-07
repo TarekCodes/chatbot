@@ -37,7 +37,7 @@ async def admin():
 
 class ChatRequest(BaseModel):
     message: str
-    history: list[dict] = []
+    history: list = []
 
 
 @app.post("/api/chat")

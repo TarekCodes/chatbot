@@ -173,7 +173,12 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, history: history })
       });
-      if (!res.ok) throw new Error('Server error ' + res.status);
+      if (!res.ok) {
+        var errData = await res.json().catch(function() { return {}; });
+        var detail = errData.detail;
+        if (Array.isArray(detail)) detail = detail.map(function(e) { return e.loc.join('.') + ': ' + e.msg; }).join('; ');
+        throw new Error('Server error ' + res.status + (detail ? ': ' + detail : ''));
+      }
       var data = await res.json();
       var reply = data.reply || 'Sorry, I could not get a response.';
 
@@ -184,8 +189,9 @@
       typing.remove();
       addBotMsg(reply);
     } catch(e) {
+      console.error('[Chat error]', e);
       typing.remove();
-      addBotMsg('Sorry, something went wrong. Please try again.');
+      addBotMsg('Error: ' + e.message);
     } finally {
       sendBtn.disabled = false;
       input.focus();
