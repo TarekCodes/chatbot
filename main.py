@@ -108,19 +108,25 @@ async def crawl_stream(url: str, max_pages: int = 50, key: str | None = None):
         domain = parsed.netloc
         clean_start = parsed._replace(fragment="", query="").geturl().rstrip("/") or url
 
-        seen: set[str] = {clean_start}   # visited + queued, for O(1) dedup
+        crawled: set[str] = set()        # URLs we have fully processed
+        queued: set[str] = {clean_start} # URLs already in the queue
         queue: list[str] = [clean_start]
         total_chunks = 0
         pages_done = 0
 
         while queue and pages_done < max_pages:
             current = queue.pop(0)
+
+            if current in crawled:       # safety guard — skip if already done
+                continue
+            crawled.add(current)
+
             try:
                 result = await asyncio.to_thread(fetch_page, current, domain)
 
                 for link in result["links"]:
-                    if link not in seen:
-                        seen.add(link)
+                    if link not in crawled and link not in queued:
+                        queued.add(link)
                         queue.append(link)
 
                 if result["chunks"]:
