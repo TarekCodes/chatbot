@@ -100,6 +100,12 @@
       transition: opacity .15s; white-space: nowrap; flex-shrink: 0;
     }
     #send:disabled { opacity: .45; cursor: default; }
+    #char-count {
+      font-size: 11px; color: #9ca3af; text-align: right;
+      padding: 2px 4px 0;
+    }
+    #char-count.near-limit { color: #f97316; }
+    #char-count.at-limit { color: #ef4444; }
   </style>
 </head>
 <body>
@@ -112,7 +118,8 @@
   <div id="messages"></div>
 
   <div id="input-area">
-    <textarea id="input" rows="1" placeholder="Type your message…"></textarea>
+    <textarea id="input" rows="1" placeholder="Type your message…" maxlength="500"></textarea>
+    <div id="char-count">0 / 500</div>
     <button id="send">Send</button>
   </div>
 </div>
@@ -243,9 +250,13 @@
   input.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   });
+  var charCount = document.getElementById('char-count');
   input.addEventListener('input', function() {
     this.style.height = 'auto';
     this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    var len = this.value.length;
+    charCount.textContent = len + ' / 500';
+    charCount.className = len >= 500 ? 'at-limit' : len >= 400 ? 'near-limit' : '';
   });
 </script>
 </body>
