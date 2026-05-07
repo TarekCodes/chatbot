@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chatbot Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f3f4f6; color: #111; font-size: 15px;
+    }
+    header {
+      background: #4f46e5; color: #fff; padding: 16px 24px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    main { max-width: 780px; margin: 32px auto; padding: 0 16px; }
+
+    .card {
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      padding: 24px; margin-bottom: 24px;
+    }
+    h2 { margin: 0 0 16px; font-size: 16px; font-weight: 600; color: #374151; }
+
+    label { display: block; margin-bottom: 6px; font-weight: 500; color: #374151; }
+    input[type=text], input[type=password], input[type=url] {
+      width: 100%; padding: 9px 12px; border: 1px solid #d1d5db;
+      border-radius: 8px; font-size: 14px; outline: none;
+    }
+    input:focus { border-color: #4f46e5; }
+
+    .row { display: flex; gap: 10px; align-items: flex-end; }
+    .row input { flex: 1; }
+
+    button {
+      padding: 9px 18px; background: #4f46e5; color: #fff;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 500; white-space: nowrap;
+    }
+    button:disabled { opacity: .5; cursor: default; }
+    button.danger { background: #ef4444; }
+
+    .file-label {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 9px 18px; background: #f3f4f6; color: #374151;
+      border: 1px dashed #d1d5db; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 500; width: 100%; justify-content: center;
+    }
+    .file-label:hover { background: #e9eaf0; }
+    input[type=file] { display: none; }
+
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #1e293b; color: #fff; padding: 10px 20px; border-radius: 8px;
+      font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999;
+    }
+    .toast.show { opacity: 1; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 12px; color: #6b7280; font-weight: 500;
+         padding: 6px 8px; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 10px 8px; border-bottom: 1px solid #f3f4f6; font-size: 13px;
+         word-break: break-all; }
+    tr:last-child td { border: none; }
+    .badge {
+      display: inline-block; background: #ede9fe; color: #4f46e5;
+      border-radius: 99px; padding: 2px 8px; font-size: 12px; font-weight: 500;
+    }
+    #sources-empty { color: #9ca3af; font-size: 14px; text-align: center; padding: 20px 0; }
+  </style>
+</head>
+<body>
+<header>
+  <svg style="width:22px;height:22px;fill:#fff" viewBox="0 0 24 24">
+    <path d="M20 2H4a2 2 0 00-2 2v18l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/>
+  </svg>
+  <h1>Chatbot Admin</h1>
+</header>
+
+<main>
+  <!-- Admin Key -->
+  <div class="card">
+    <h2>Admin Key</h2>
+    <label for="admin-key">Enter your ADMIN_KEY (leave blank if not set)</label>
+    <input type="password" id="admin-key" placeholder="admin key…" />
+  </div>
+
+  <!-- Upload File -->
+  <div class="card">
+    <h2>Upload Document</h2>
+    <p style="margin:0 0 14px;color:#6b7280;font-size:13px">Supported: PDF, DOCX</p>
+    <label class="file-label" for="file-input">
+      <svg style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 12l-4-4m0 0L8 12m4-4v12"/>
+      </svg>
+      <span id="file-label-text">Click to choose a file…</span>
+    </label>
+    <input type="file" id="file-input" accept=".pdf,.docx" />
+    <button id="upload-btn" style="margin-top:12px;width:100%" disabled>Upload</button>
+  </div>
+
+  <!-- Ingest URL -->
+  <div class="card">
+    <h2>Ingest URL</h2>
+    <p style="margin:0 0 14px;color:#6b7280;font-size:13px">Scrape and index any webpage</p>
+    <div class="row">
+      <input type="url" id="url-input" placeholder="https://example.com/about" />
+      <button id="url-btn">Ingest</button>
+    </div>
+  </div>
+
+  <!-- Sources -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="margin:0">Indexed Sources</h2>
+      <button onclick="loadSources()" style="background:#f3f4f6;color:#374151;padding:6px 12px;font-size:13px">Refresh</button>
+    </div>
+    <div id="sources-container">
+      <p id="sources-empty">No sources yet. Upload a document or ingest a URL above.</p>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  var fileInput = document.getElementById('file-input');
+  var uploadBtn = document.getElementById('upload-btn');
+  var urlInput  = document.getElementById('url-input');
+  var urlBtn    = document.getElementById('url-btn');
+
+  function adminKey() { return document.getElementById('admin-key').value.trim(); }
+
+  function apiBase() {
+    return window.location.origin;
+  }
+
+  function showToast(msg, err) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = err ? '#ef4444' : '#1e293b';
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 3000);
+  }
+
+  fileInput.addEventListener('change', function() {
+    var name = this.files[0] ? this.files[0].name : 'Click to choose a file…';
+    document.getElementById('file-label-text').textContent = name;
+    uploadBtn.disabled = !this.files[0];
+  });
+
+  uploadBtn.addEventListener('click', async function() {
+    var file = fileInput.files[0];
+    if (!file) return;
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Uploading…';
+    try {
+      var form = new FormData();
+      form.append('file', file);
+      var url = apiBase() + '/api/ingest/file';
+      if (adminKey()) url += '?key=' + encodeURIComponent(adminKey());
+      var res = await fetch(url, { method: 'POST', body: form });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      showToast('Uploaded "' + data.source + '" — ' + data.chunks + ' chunks indexed');
+      fileInput.value = '';
+      document.getElementById('file-label-text').textContent = 'Click to choose a file…';
+      loadSources();
+    } catch(e) {
+      showToast(e.message, true);
+    } finally {
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload';
+    }
+  });
+
+  urlBtn.addEventListener('click', async function() {
+    var url = urlInput.value.trim();
+    if (!url) return;
+    urlBtn.disabled = true;
+    urlBtn.textContent = 'Ingesting…';
+    try {
+      var endpoint = apiBase() + '/api/ingest/url';
+      if (adminKey()) endpoint += '?key=' + encodeURIComponent(adminKey());
+      var res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url })
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Ingest failed');
+      showToast('Ingested "' + url + '" — ' + data.chunks + ' chunks indexed');
+      urlInput.value = '';
+      loadSources();
+    } catch(e) {
+      showToast(e.message, true);
+    } finally {
+      urlBtn.disabled = false;
+      urlBtn.textContent = 'Ingest';
+    }
+  });
+
+  async function loadSources() {
+    try {
+      var url = apiBase() + '/api/sources';
+      if (adminKey()) url += '?key=' + encodeURIComponent(adminKey());
+      var res = await fetch(url);
+      var data = await res.json();
+      renderSources(data.sources || []);
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
+  function renderSources(sources) {
+    var container = document.getElementById('sources-container');
+    if (!sources.length) {
+      container.innerHTML = '<p id="sources-empty">No sources yet. Upload a document or ingest a URL above.</p>';
+      return;
+    }
+    var rows = sources.map(function(s) {
+      return '<tr>' +
+        '<td>' + escHtml(s.source) + '</td>' +
+        '<td><span class="badge">' + s.chunks + ' chunks</span></td>' +
+        '<td><button class="danger" onclick="deleteSource(\'' + escAttr(s.source) + '\')" style="padding:5px 10px;font-size:12px">Delete</button></td>' +
+        '</tr>';
+    }).join('');
+    container.innerHTML = '<table><thead><tr><th>Source</th><th>Chunks</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  async function deleteSource(source) {
+    if (!confirm('Delete "' + source + '"?')) return;
+    try {
+      var url = apiBase() + '/api/sources?source=' + encodeURIComponent(source);
+      if (adminKey()) url += '&key=' + encodeURIComponent(adminKey());
+      var res = await fetch(url, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      showToast('Deleted "' + source + '"');
+      loadSources();
+    } catch(e) {
+      showToast(e.message, true);
+    }
+  }
+
+  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escAttr(s) { return s.replace(/'/g,"\\'"); }
+
+  loadSources();
+</script>
+</body>
+</html>
