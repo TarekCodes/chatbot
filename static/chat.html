@@ -19,11 +19,12 @@
 
     /* ── Header ── */
     #header {
-      background: #4f46e5; color: #fff;
+      background: linear-gradient(135deg, #7dd3fc 0%, #ffffff 100%);
+      color: #0369a1;
       padding: 14px 18px; display: flex; align-items: center; gap: 10px;
-      flex-shrink: 0;
+      flex-shrink: 0; border-bottom: 1px solid #bae6fd;
     }
-    #header svg { width: 20px; height: 20px; fill: #fff; flex-shrink: 0; }
+    #header svg { width: 20px; height: 20px; fill: #0369a1; flex-shrink: 0; }
     #header-title { font-weight: 600; font-size: 15px; }
 
     /* ── Messages ── */
@@ -39,18 +40,34 @@
 
     .bubble {
       padding: 10px 14px; border-radius: 16px;
-      line-height: 1.55; white-space: pre-wrap; word-break: break-word;
-      font-size: 14px;
+      line-height: 1.55; word-break: break-word; font-size: 14px;
     }
     .user .bubble {
-      background: #4f46e5; color: #fff;
-      border-bottom-right-radius: 4px;
+      background: #38bdf8; color: #fff;
+      border-bottom-right-radius: 4px; white-space: pre-wrap;
     }
     .bot .bubble {
       background: #fff; color: #111;
       border: 1px solid #e5e7eb;
       border-bottom-left-radius: 4px;
     }
+    .bot .bubble strong { font-weight: 600; }
+    .bot .bubble em { font-style: italic; }
+    .bot .bubble code {
+      background: #f3f4f6; border: 1px solid #e5e7eb;
+      border-radius: 4px; padding: 1px 5px; font-family: monospace; font-size: 13px;
+    }
+    .bot .bubble pre {
+      background: #1e293b; color: #e2e8f0; border-radius: 8px;
+      padding: 10px 12px; margin: 6px 0; overflow-x: auto; font-size: 13px;
+    }
+    .bot .bubble pre code {
+      background: none; border: none; padding: 0; color: inherit; font-size: inherit;
+    }
+    .bot .bubble ul { padding-left: 18px; margin: 4px 0; }
+    .bot .bubble ol { padding-left: 18px; margin: 4px 0; }
+    .bot .bubble li { margin: 2px 0; }
+    .bot .bubble p { margin: 4px 0; }
 
     /* typing dots */
     .typing { display: flex; gap: 5px; align-items: center;
@@ -76,9 +93,9 @@
       resize: none; outline: none; line-height: 1.45; max-height: 120px;
       overflow-y: auto;
     }
-    #input:focus { border-color: #4f46e5; }
+    #input:focus { border-color: #38bdf8; }
     #send {
-      background: #4f46e5; color: #fff; border: none; border-radius: 10px;
+      background: #38bdf8; color: #fff; border: none; border-radius: 10px;
       padding: 9px 16px; cursor: pointer; font-size: 14px; font-weight: 500;
       transition: opacity .15s; white-space: nowrap; flex-shrink: 0;
     }
@@ -103,17 +120,12 @@
 <script>
   // Config can be overridden via URL params: ?title=...&color=...&welcome=...
   var params = new URLSearchParams(window.location.search);
-  var TITLE   = params.get('title')   || 'Chat with us';
-  var COLOR   = params.get('color')   || '#4f46e5';
-  var WELCOME = params.get('welcome') || 'Hi! How can I help you today?';
+  var TITLE   = params.get('title')   || 'Dream Interpretation';
+  var COLOR   = params.get('color')   || '#38bdf8';
+  var WELCOME = params.get('welcome') || 'Al Salam Alaikum, please tell me about your dream!';
 
   document.getElementById('header-title').textContent = TITLE;
-  document.querySelector('#header').style.background = COLOR;
-  document.querySelector('.user .bubble') && (document.querySelector('.user .bubble').style.background = COLOR);
-  document.getElementById('input').style.setProperty('--focus-color', COLOR);
-  document.getElementById('send').style.background = COLOR;
 
-  // Apply color to dynamically created user bubbles via CSS variable
   var style = document.createElement('style');
   style.textContent = '.user .bubble { background: ' + COLOR + ' !important; } #input:focus { border-color: ' + COLOR + ' !important; } #send { background: ' + COLOR + ' !important; }';
   document.head.appendChild(style);
@@ -128,7 +140,7 @@
   function addBotMsg(text) {
     var d = document.createElement('div');
     d.className = 'msg bot';
-    d.innerHTML = '<div class="bubble">' + esc(text) + '</div>';
+    d.innerHTML = '<div class="bubble">' + mdToHtml(text) + '</div>';
     messages.appendChild(d);
     scrollDown();
     return d;
@@ -155,6 +167,35 @@
 
   function esc(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function mdToHtml(text) {
+    var s = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    // Fenced code blocks
+    s = s.replace(/```(?:\w+)?\n?([\s\S]*?)```/g, function(_, code) {
+      return '<pre><code>' + code.trim() + '</code></pre>';
+    });
+    // Inline code
+    s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+    // Bold
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    s = s.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    // Headers → bold block
+    s = s.replace(/^#{1,3} (.+)$/gm, '<strong>$1</strong>');
+    // Unordered lists
+    s = s.replace(/^[ \t]*[-*+] (.+)$/gm, '<li>$1</li>');
+    s = s.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    // Ordered lists
+    s = s.replace(/^[ \t]*\d+\. (.+)$/gm, '<li>$1</li>');
+    // Paragraphs (blank line)
+    s = s.replace(/\n{2,}/g, '</p><p>');
+    // Line breaks
+    s = s.replace(/\n/g, '<br>');
+    return '<p>' + s + '</p>';
   }
 
   async function send() {

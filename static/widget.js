@@ -60,11 +60,18 @@
     .cb-msg.cb-user { align-self: flex-end; align-items: flex-end; }
     .cb-msg.cb-bot  { align-self: flex-start; }
     .cb-bubble {
-      padding: 9px 13px; border-radius: 14px;
-      white-space: pre-wrap; word-break: break-word;
+      padding: 9px 13px; border-radius: 14px; word-break: break-word;
     }
-    .cb-user .cb-bubble { background: ${COLOR}; color: #fff; border-bottom-right-radius: 4px; }
+    .cb-user .cb-bubble { background: ${COLOR}; color: #fff; border-bottom-right-radius: 4px; white-space: pre-wrap; }
     .cb-bot  .cb-bubble { background: #fff; color: #111; border: 1px solid #e5e7eb; border-bottom-left-radius: 4px; }
+    .cb-bot .cb-bubble p { margin: 3px 0; }
+    .cb-bot .cb-bubble strong { font-weight: 600; }
+    .cb-bot .cb-bubble em { font-style: italic; }
+    .cb-bot .cb-bubble code { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 3px; padding: 1px 4px; font-family: monospace; font-size: 12px; }
+    .cb-bot .cb-bubble pre { background: #1e293b; color: #e2e8f0; border-radius: 6px; padding: 8px 10px; margin: 4px 0; overflow-x: auto; font-size: 12px; }
+    .cb-bot .cb-bubble pre code { background: none; border: none; padding: 0; color: inherit; }
+    .cb-bot .cb-bubble ul, .cb-bot .cb-bubble ol { padding-left: 16px; margin: 3px 0; }
+    .cb-bot .cb-bubble li { margin: 1px 0; }
 
     .cb-typing { display: flex; gap: 4px; align-items: center; padding: 10px 13px; }
     .cb-dot { width: 7px; height: 7px; border-radius: 50%; background: #9ca3af;
@@ -145,7 +152,7 @@
   function addBotMsg(text) {
     var div = document.createElement("div");
     div.className = "cb-msg cb-bot";
-    div.innerHTML = '<div class="cb-bubble">' + escHtml(text) + "</div>";
+    div.innerHTML = '<div class="cb-bubble">' + mdToHtml(text) + "</div>";
     messages.appendChild(div);
     scrollDown();
     return div;
@@ -178,6 +185,25 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  function mdToHtml(text) {
+    var s = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    s = s.replace(/```(?:\w+)?\n?([\s\S]*?)```/g, function(_, code) {
+      return "<pre><code>" + code.trim() + "</code></pre>";
+    });
+    s = s.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+    s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
+    s = s.replace(/^#{1,3} (.+)$/gm, "<strong>$1</strong>");
+    s = s.replace(/^[ \t]*[-*+] (.+)$/gm, "<li>$1</li>");
+    s = s.replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>");
+    s = s.replace(/\n{2,}/g, "</p><p>");
+    s = s.replace(/\n/g, "<br>");
+    return "<p>" + s + "</p>";
   }
 
   async function send() {
