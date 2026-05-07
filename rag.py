@@ -71,5 +71,15 @@ class RAGEngine:
             tally[src] = tally.get(src, 0) + 1
         return [{"source": s, "chunks": c} for s, c in tally.items()]
 
+    def get_chunks(self, source: str) -> list[dict]:
+        result = self.collection.get(
+            where={"source": source},
+            include=["documents"],
+        )
+        return [
+            {"id": doc_id, "text": doc}
+            for doc_id, doc in zip(result["ids"], result["documents"])
+        ]
+
     def delete_source(self, source: str) -> None:
         self.collection.delete(where={"source": source})

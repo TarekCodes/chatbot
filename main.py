@@ -97,6 +97,12 @@ async def list_sources(key: str | None = None):
     return {"sources": rag.list_sources()}
 
 
+@app.get("/api/chunks")
+async def get_chunks(source: str, key: str | None = None):
+    check_admin(key)
+    return {"chunks": rag.get_chunks(source)}
+
+
 @app.delete("/api/sources")
 async def delete_source(source: str, key: str | None = None):
     check_admin(key)
