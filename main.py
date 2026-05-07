@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from ingest import ingest_docx, ingest_pdf, ingest_url
+from ingest import crawl_site, ingest_docx, ingest_pdf, ingest_url
 from rag import RAGEngine
 
 app = FastAPI(title="Chatbot API")
@@ -94,6 +94,27 @@ async def ingest_url_endpoint(body: URLRequest, key: str | None = None):
     chunks = ingest_url(body.url)
     added = rag.add_documents(chunks, source=body.url)
     return {"status": "ok", "source": body.url, "chunks": added}
+
+
+class CrawlRequest(BaseModel):
+    url: str
+    max_pages: int = 50
+
+
+@app.post("/api/ingest/crawl")
+async def crawl_endpoint(body: CrawlRequest, key: str | None = None):
+    check_admin(key)
+    pages = crawl_site(body.url, max_pages=body.max_pages)
+    total_chunks = 0
+    ingested = []
+    for page in pages:
+        if page["chunks"] and not page["error"]:
+            added = rag.add_documents(page["chunks"], source=page["url"])
+            total_chunks += added
+            ingested.append({"url": page["url"], "chunks": added})
+        elif page["error"]:
+            ingested.append({"url": page["url"], "chunks": 0, "error": page["error"]})
+    return {"status": "ok", "pages": len(ingested), "total_chunks": total_chunks, "detail": ingested}
 
 
 # ── Sources ───────────────────────────────────────────────────────────────────
