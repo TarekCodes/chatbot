@@ -141,6 +141,8 @@
   var input    = document.getElementById('input');
   var sendBtn  = document.getElementById('send');
   var chatHistory = [];
+  var SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+  var PAGE_URL   = document.referrer || window.location.href;
 
   addBotMsg(WELCOME);
 
@@ -219,7 +221,7 @@
       var res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history: chatHistory })
+        body: JSON.stringify({ message: text, history: chatHistory, session_id: SESSION_ID, page_url: PAGE_URL })
       });
       if (!res.ok) {
         var errData = await res.json().catch(function() { return {}; });

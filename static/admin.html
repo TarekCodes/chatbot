@@ -159,6 +159,17 @@
     <div id="metrics-table"></div>
   </div>
 
+  <!-- Conversations -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="margin:0">Conversations</h2>
+      <button onclick="loadConversations()" style="background:#f3f4f6;color:#374151;padding:6px 12px;font-size:13px">Refresh</button>
+    </div>
+    <div id="conversations-container">
+      <p style="color:#9ca3af;font-size:14px;text-align:center;padding:20px 0">No conversations yet.</p>
+    </div>
+  </div>
+
   <!-- Crawl Site -->
   <div class="card">
     <h2>Crawl Entire Website</h2>
@@ -424,6 +435,64 @@
   function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function escAttr(s) { return s.replace(/'/g,"\\'"); }
 
+  async function loadConversations() {
+    try {
+      var url = apiBase() + '/api/conversations';
+      if (adminKey()) url += '?key=' + encodeURIComponent(adminKey());
+      var res = await fetch(url);
+      var data = await res.json();
+      renderConversations(data.conversations || []);
+    } catch(e) { console.error(e); }
+  }
+
+  function renderConversations(convos) {
+    var container = document.getElementById('conversations-container');
+    if (!convos.length) {
+      container.innerHTML = '<p style="color:#9ca3af;font-size:14px;text-align:center;padding:20px 0">No conversations yet.</p>';
+      return;
+    }
+    var rows = convos.map(function(c) {
+      var date = c.started_at ? c.started_at.slice(0, 16).replace('T', ' ') : '—';
+      var preview = c.first_message ? escHtml(c.first_message.slice(0, 60)) + (c.first_message.length > 60 ? '…' : '') : '—';
+      var page = c.page_url ? escHtml(c.page_url.replace(/^https?:\/\//, '').slice(0, 40)) : '—';
+      return '<tr>' +
+        '<td style="color:#6b7280;white-space:nowrap">' + date + '</td>' +
+        '<td>' + preview + '</td>' +
+        '<td style="color:#6b7280">' + page + '</td>' +
+        '<td><span class="badge">' + c.turns + ' turns</span></td>' +
+        '<td><button class="secondary" onclick="viewConversation(\'' + escAttr(c.id) + '\')" style="padding:5px 10px;font-size:12px">View</button></td>' +
+        '</tr>';
+    }).join('');
+    container.innerHTML = '<table><thead><tr><th>Started</th><th>First message</th><th>Page</th><th>Turns</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  async function viewConversation(sessionId) {
+    document.getElementById('modal-title').textContent = 'Conversation';
+    document.getElementById('modal-body').innerHTML = '<p style="color:#9ca3af;text-align:center">Loading…</p>';
+    document.getElementById('modal-backdrop').classList.add('open');
+    try {
+      var url = apiBase() + '/api/conversations/' + encodeURIComponent(sessionId);
+      if (adminKey()) url += '?key=' + encodeURIComponent(adminKey());
+      var res = await fetch(url);
+      var data = await res.json();
+      var turns = data.turns || [];
+      if (!turns.length) {
+        document.getElementById('modal-body').innerHTML = '<p style="color:#9ca3af;text-align:center">No messages.</p>';
+        return;
+      }
+      document.getElementById('modal-body').innerHTML = turns.map(function(t) {
+        var time = t.timestamp ? t.timestamp.slice(0, 16).replace('T', ' ') : '';
+        return '<div style="margin-bottom:16px">' +
+          '<div style="font-size:11px;color:#9ca3af;margin-bottom:4px">' + time + '</div>' +
+          '<div style="background:#ede9fe;border-radius:10px 10px 2px 10px;padding:9px 12px;font-size:13px;margin-bottom:6px"><strong>User:</strong> ' + escHtml(t.user_message) + '</div>' +
+          '<div style="background:#f3f4f6;border-radius:2px 10px 10px 10px;padding:9px 12px;font-size:13px"><strong>Bot:</strong> ' + escHtml(t.bot_reply) + '</div>' +
+          '</div>';
+      }).join('');
+    } catch(e) {
+      document.getElementById('modal-body').innerHTML = '<p style="color:#ef4444">Failed to load.</p>';
+    }
+  }
+
   // ── Pricing table (per 1M tokens) ──────────────────────────────────────────
   var PRICING = {
     anthropic: { input: 3.00, output: 15.00 },
@@ -492,6 +561,7 @@
   }
 
   loadMetrics();
+  loadConversations();
   loadSources();
 </script>
 </body>

@@ -50,6 +50,8 @@ async def admin():
 class ChatRequest(BaseModel):
     message: str
     history: list = []
+    session_id: str | None = None
+    page_url: str | None = None
 
 
 @app.post("/api/chat")
@@ -58,6 +60,9 @@ async def chat(body: ChatRequest):
         raise HTTPException(400, "Message cannot be empty")
     reply, input_tokens, output_tokens = rag.chat(body.message, body.history)
     metrics.log(input_tokens, output_tokens, rag.provider)
+    if body.session_id:
+        metrics.upsert_conversation(body.session_id, body.page_url)
+        metrics.log_turn(body.session_id, body.message, reply, input_tokens, output_tokens)
     return {"reply": reply}
 
 
@@ -175,6 +180,18 @@ async def get_chunks(source: str, key: str | None = None):
 async def get_metrics(days: int = 30, key: str | None = None):
     check_admin(key)
     return {"daily": metrics.daily_stats(days), "totals": metrics.totals()}
+
+
+@app.get("/api/conversations")
+async def get_conversations(key: str | None = None):
+    check_admin(key)
+    return {"conversations": metrics.get_conversations()}
+
+
+@app.get("/api/conversations/{session_id}")
+async def get_conversation(session_id: str, key: str | None = None):
+    check_admin(key)
+    return {"turns": metrics.get_turns(session_id)}
 
 
 @app.delete("/api/sources")
