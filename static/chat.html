@@ -214,9 +214,8 @@
         throw new Error('Server error ' + res.status + (detail ? ': ' + detail : ''));
       }
 
-      typing.remove();
-      var botDiv = addBotMsg('');
-      var bubble = botDiv.querySelector('.bubble');
+      var botDiv = null;
+      var bubble = null;
       var replyText = '';
 
       var reader = res.body.getReader();
@@ -235,6 +234,11 @@
           var payload = JSON.parse(line.slice(6));
           if (payload.error) throw new Error(payload.error);
           if (payload.token) {
+            if (!botDiv) {
+              typing.remove();
+              botDiv = addBotMsg('');
+              bubble = botDiv.querySelector('.bubble');
+            }
             replyText += payload.token;
             bubble.innerHTML = mdToHtml(replyText);
             scrollDown();
@@ -242,7 +246,9 @@
         }
       }
 
+      if (!botDiv) { typing.remove(); }
       if (!replyText) replyText = 'Sorry, I could not get a response.';
+      if (!botDiv) addBotMsg(replyText);
       chatHistory.push({ role: 'user', content: text });
       chatHistory.push({ role: 'assistant', content: replyText });
       if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
