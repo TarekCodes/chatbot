@@ -82,14 +82,14 @@ class RAGEngine:
         messages.append({"role": "user", "content": user_content})
         response = self._openai.chat.completions.create(
             model=self._model,
-            max_completion_tokens=1024,
+            max_completion_tokens=2048,
             messages=messages,
         )
         choice = response.choices[0]
         content = choice.message.content
-        if not content:
+        if content is None:
             reason = choice.finish_reason
-            print(f"[openai] empty content, finish_reason={reason}")
+            print(f"[openai] null content, finish_reason={reason}")
             raise ValueError(f"OpenAI returned no content (finish_reason={reason})")
         return (content,
                 response.usage.prompt_tokens,
