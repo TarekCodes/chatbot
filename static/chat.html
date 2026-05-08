@@ -213,6 +213,8 @@
 
     input.value = '';
     input.style.height = 'auto';
+    charCount.textContent = '0 / 500';
+    charCount.className = '';
     sendBtn.disabled = true;
     addUserMsg(text);
     var typing = showTyping();

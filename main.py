@@ -12,12 +12,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 import metrics
 from ingest import fetch_page, ingest_docx, ingest_pdf, ingest_url
 from rag import RAGEngine
 
 app = FastAPI(title="Chatbot API")
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,6 +33,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+MAX_MESSAGE_LENGTH = int(os.environ.get("MAX_MESSAGE_LENGTH", 500))
+RATE_LIMIT         = os.environ.get("RATE_LIMIT", "20/minute")
 
 rag = RAGEngine()
 
@@ -55,14 +65,22 @@ class ChatRequest(BaseModel):
 
 
 @app.post("/api/chat")
-async def chat(body: ChatRequest):
-    if not body.message.strip():
+@limiter.limit(RATE_LIMIT)
+async def chat(request: Request, body: ChatRequest):
+    msg = body.message.strip()
+    if not msg:
         raise HTTPException(400, "Message cannot be empty")
-    reply, input_tokens, output_tokens = rag.chat(body.message, body.history)
+    if len(msg) > MAX_MESSAGE_LENGTH:
+        raise HTTPException(400, f"Message exceeds {MAX_MESSAGE_LENGTH} character limit")
+    try:
+        reply, input_tokens, output_tokens = rag.chat(msg, body.history)
+    except Exception as e:
+        print(f"[chat] error: {e}")
+        raise HTTPException(500, str(e))
     metrics.log(input_tokens, output_tokens, rag.provider)
     if body.session_id:
         metrics.upsert_conversation(body.session_id, body.page_url)
-        metrics.log_turn(body.session_id, body.message, reply, input_tokens, output_tokens)
+        metrics.log_turn(body.session_id, msg, reply, input_tokens, output_tokens)
     return {"reply": reply}
 
 

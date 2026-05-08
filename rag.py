@@ -85,7 +85,13 @@ class RAGEngine:
             max_completion_tokens=1024,
             messages=messages,
         )
-        return (response.choices[0].message.content,
+        choice = response.choices[0]
+        content = choice.message.content
+        if not content:
+            reason = choice.finish_reason
+            print(f"[openai] empty content, finish_reason={reason}")
+            raise ValueError(f"OpenAI returned no content (finish_reason={reason})")
+        return (content,
                 response.usage.prompt_tokens,
                 response.usage.completion_tokens)
 
