@@ -149,6 +149,16 @@
     </div>
   </div>
 
+  <!-- Metrics -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="margin:0">Usage Metrics</h2>
+      <button onclick="loadMetrics()" style="background:#f3f4f6;color:#374151;padding:6px 12px;font-size:13px">Refresh</button>
+    </div>
+    <div id="metrics-totals" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px"></div>
+    <div id="metrics-table"></div>
+  </div>
+
   <!-- Crawl Site -->
   <div class="card">
     <h2>Crawl Entire Website</h2>
@@ -414,6 +424,74 @@
   function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function escAttr(s) { return s.replace(/'/g,"\\'"); }
 
+  // ── Pricing table (per 1M tokens) ──────────────────────────────────────────
+  var PRICING = {
+    anthropic: { input: 3.00, output: 15.00 },
+    openai:    { input: 2.50, output: 10.00 },
+  };
+
+  function estimateCost(provider, inputTok, outputTok) {
+    var p = PRICING[provider] || PRICING.anthropic;
+    return (inputTok * p.input + outputTok * p.output) / 1000000;
+  }
+
+  function fmt(n)     { return (n || 0).toLocaleString(); }
+  function fmtCost(n) { return '$' + (n || 0).toFixed(4); }
+
+  async function loadMetrics() {
+    try {
+      var url = apiBase() + '/api/metrics?days=30';
+      if (adminKey()) url += '&key=' + encodeURIComponent(adminKey());
+      var res = await fetch(url);
+      var data = await res.json();
+      renderMetrics(data.totals, data.daily || []);
+    } catch(e) { console.error(e); }
+  }
+
+  function renderMetrics(totals, daily) {
+    var totalCost = daily.reduce(function(sum, r) {
+      return sum + estimateCost(r.provider, r.input_tokens, r.output_tokens);
+    }, 0);
+
+    document.getElementById('metrics-totals').innerHTML = [
+      ['Total messages',  fmt(totals.messages)],
+      ['Input tokens',    fmt(totals.input_tokens)],
+      ['Output tokens',   fmt(totals.output_tokens)],
+      ['Est. cost (30d)', fmtCost(totalCost)],
+    ].map(function(pair) {
+      return '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;min-width:130px">' +
+        '<div style="font-size:11px;color:#6b7280;font-weight:500;margin-bottom:4px">' + pair[0] + '</div>' +
+        '<div style="font-size:20px;font-weight:700;color:#111">' + pair[1] + '</div></div>';
+    }).join('');
+
+    if (!daily.length) {
+      document.getElementById('metrics-table').innerHTML =
+        '<p style="color:#9ca3af;font-size:14px;text-align:center;padding:16px 0">No data yet — messages will appear here after the first chat.</p>';
+      return;
+    }
+
+    var byDay = {};
+    daily.forEach(function(r) {
+      if (!byDay[r.day]) byDay[r.day] = {day: r.day, messages: 0, input_tokens: 0, output_tokens: 0, cost: 0};
+      byDay[r.day].messages      += r.messages;
+      byDay[r.day].input_tokens  += r.input_tokens;
+      byDay[r.day].output_tokens += r.output_tokens;
+      byDay[r.day].cost          += estimateCost(r.provider, r.input_tokens, r.output_tokens);
+    });
+
+    var rows = Object.values(byDay).sort(function(a, b) { return b.day.localeCompare(a.day); });
+    document.getElementById('metrics-table').innerHTML =
+      '<table><thead><tr><th>Date</th><th>Messages</th><th>Input tokens</th><th>Output tokens</th><th>Est. cost</th></tr></thead><tbody>' +
+      rows.map(function(r) {
+        return '<tr><td>' + r.day + '</td><td>' + fmt(r.messages) + '</td><td>' +
+          fmt(r.input_tokens) + '</td><td>' + fmt(r.output_tokens) + '</td><td>' +
+          fmtCost(r.cost) + '</td></tr>';
+      }).join('') +
+      '</tbody></table>' +
+      '<p style="margin-top:8px;font-size:11px;color:#9ca3af">Estimates: Anthropic $3/$15 · OpenAI $2.50/$10 per 1M tokens</p>';
+  }
+
+  loadMetrics();
   loadSources();
 </script>
 </body>

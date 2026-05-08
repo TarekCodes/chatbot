@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+import metrics
 from ingest import fetch_page, ingest_docx, ingest_pdf, ingest_url
 from rag import RAGEngine
 
@@ -55,7 +56,8 @@ class ChatRequest(BaseModel):
 async def chat(body: ChatRequest):
     if not body.message.strip():
         raise HTTPException(400, "Message cannot be empty")
-    reply = rag.chat(body.message, body.history)
+    reply, input_tokens, output_tokens = rag.chat(body.message, body.history)
+    metrics.log(input_tokens, output_tokens, rag.provider)
     return {"reply": reply}
 
 
@@ -167,6 +169,12 @@ async def list_sources(key: str | None = None):
 async def get_chunks(source: str, key: str | None = None):
     check_admin(key)
     return {"chunks": rag.get_chunks(source)}
+
+
+@app.get("/api/metrics")
+async def get_metrics(days: int = 30, key: str | None = None):
+    check_admin(key)
+    return {"daily": metrics.daily_stats(days), "totals": metrics.totals()}
 
 
 @app.delete("/api/sources")

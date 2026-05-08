@@ -48,7 +48,8 @@ class RAGEngine:
         )
         return results["documents"][0] if results["documents"] else []
 
-    def chat(self, message: str, history: list) -> str:
+    def chat(self, message: str, history: list) -> tuple[str, int, int]:
+        """Returns (reply, input_tokens, output_tokens)."""
         context_chunks = self.retrieve(message)
 
         if context_chunks:
@@ -61,7 +62,7 @@ class RAGEngine:
             return self._chat_openai(user_content, history)
         return self._chat_anthropic(user_content, history)
 
-    def _chat_anthropic(self, user_content: str, history: list) -> str:
+    def _chat_anthropic(self, user_content: str, history: list) -> tuple[str, int, int]:
         messages = [{"role": t["role"], "content": t["content"]} for t in history[-10:]]
         messages.append({"role": "user", "content": user_content})
         response = self._anthropic.messages.create(
@@ -70,9 +71,11 @@ class RAGEngine:
             system=self.system_prompt,
             messages=messages,
         )
-        return response.content[0].text
+        return (response.content[0].text,
+                response.usage.input_tokens,
+                response.usage.output_tokens)
 
-    def _chat_openai(self, user_content: str, history: list) -> str:
+    def _chat_openai(self, user_content: str, history: list) -> tuple[str, int, int]:
         messages = [{"role": "system", "content": self.system_prompt}]
         for t in history[-10:]:
             messages.append({"role": t["role"], "content": t["content"]})
@@ -82,7 +85,9 @@ class RAGEngine:
             max_tokens=1024,
             messages=messages,
         )
-        return response.choices[0].message.content
+        return (response.choices[0].message.content,
+                response.usage.prompt_tokens,
+                response.usage.completion_tokens)
 
     def list_sources(self) -> list[dict]:
         result = self.collection.get(include=["metadatas"])
