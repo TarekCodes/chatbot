@@ -82,7 +82,7 @@ class RAGEngine:
         messages.append({"role": "user", "content": user_content})
         response = self._openai.chat.completions.create(
             model=self._model,
-            max_tokens=1024,
+            max_completion_tokens=1024,
             messages=messages,
         )
         return (response.choices[0].message.content,
