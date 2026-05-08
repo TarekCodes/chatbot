@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chatbot Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
@@ -151,6 +152,12 @@
     }
     #test-input:focus { border-color: #4f46e5; }
     #test-send { padding: 8px 16px; flex-shrink: 0; }
+    #test-lock {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; padding: 32px 0; color: #9ca3af; font-size: 13px; text-align: center;
+    }
+    #test-lock svg { width: 28px; height: 28px; fill: #d1d5db; }
+    #test-key-status { font-size: 12px; margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -173,12 +180,21 @@
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <h2 style="margin:0">Test Chat</h2>
-      <button onclick="clearTestChat()" style="background:#f3f4f6;color:#374151;padding:6px 12px;font-size:13px">Clear</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="test-key-status"></span>
+        <button onclick="clearTestChat()" style="background:#f3f4f6;color:#374151;padding:6px 12px;font-size:13px">Clear</button>
+      </div>
     </div>
-    <div id="test-messages"></div>
-    <div id="test-input-row">
-      <textarea id="test-input" rows="1" placeholder="Type a message to test the bot…"></textarea>
-      <button id="test-send">Send</button>
+    <div id="test-lock">
+      <svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 007 6v2H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V10a2 2 0 00-2-2zm-6 9a2 2 0 110-4 2 2 0 010 4zm3.1-9H8.9V6a3.1 3.1 0 016.2 0v2z"/></svg>
+      Enter your admin key above to use the test chat
+    </div>
+    <div id="test-chat-body" style="display:none">
+      <div id="test-messages"></div>
+      <div id="test-input-row">
+        <textarea id="test-input" rows="1" placeholder="Type a message to test the bot…"></textarea>
+        <button id="test-send">Send</button>
+      </div>
     </div>
   </div>
 
@@ -617,9 +633,60 @@
       '<p style="margin-top:8px;font-size:11px;color:#9ca3af">Estimates: Anthropic $3/$15 · OpenAI $2.50/$10 per 1M tokens</p>';
   }
 
+  // If no ADMIN_KEY is set on the server, unlock test chat immediately
+  (async function() {
+    try {
+      var res = await fetch(apiBase() + '/api/sources');
+      if (res.ok) { setTestChatLocked(false); setKeyStatus('✓ (no key required)', '#16a34a'); }
+    } catch(e) {}
+  })();
+
   loadMetrics();
   loadConversations();
   loadSources();
+
+  // ── Admin key validation → unlock test chat ───────────────────────────────
+  var keyValidated = false;
+  var keyDebounce = null;
+
+  document.getElementById('admin-key').addEventListener('input', function() {
+    clearTimeout(keyDebounce);
+    var key = this.value.trim();
+    setKeyStatus('');
+    if (!key) { setTestChatLocked(true); return; }
+    keyDebounce = setTimeout(function() { validateKey(key); }, 500);
+  });
+
+  async function validateKey(key) {
+    try {
+      var res = await fetch(apiBase() + '/api/sources?key=' + encodeURIComponent(key));
+      if (res.ok) {
+        keyValidated = true;
+        setTestChatLocked(false);
+        setKeyStatus('✓', '#16a34a');
+        loadMetrics(); loadConversations(); loadSources();
+      } else {
+        keyValidated = false;
+        setTestChatLocked(true);
+        setKeyStatus('Invalid key', '#ef4444');
+      }
+    } catch(e) {
+      setKeyStatus('Error', '#ef4444');
+    }
+  }
+
+  function setKeyStatus(msg, color) {
+    var el = document.getElementById('test-key-status');
+    el.textContent = msg;
+    el.style.color = color || '#9ca3af';
+    el.style.fontSize = '12px';
+    el.style.fontWeight = msg === '✓' ? '700' : '500';
+  }
+
+  function setTestChatLocked(locked) {
+    document.getElementById('test-lock').style.display = locked ? 'flex' : 'none';
+    document.getElementById('test-chat-body').style.display = locked ? 'none' : 'block';
+  }
 
   // ── Test Chat ──────────────────────────────────────────────────────────────
   var tcHistory = [];
@@ -627,19 +694,10 @@
   var tcSend    = document.getElementById('test-send');
   var tcMsgs    = document.getElementById('test-messages');
 
+  marked.setOptions({ breaks: true, gfm: true });
+
   function tcMdToHtml(text) {
-    var s = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    s = s.replace(/```(?:\w+)?\n?([\s\S]*?)```/g, function(_, code) { return '<pre><code>' + code.trim() + '</code></pre>'; });
-    s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    s = s.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
-    s = s.replace(/^#{1,3} (.+)$/gm, '<strong>$1</strong>');
-    s = s.replace(/^[ \t]*[-*+] (.+)$/gm, '<li>$1</li>');
-    s = s.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
-    s = s.replace(/^[ \t]*\d+\. (.+)$/gm, '<li>$1</li>');
-    s = s.replace(/\n{2,}/g, '</p><p>');
-    s = s.replace(/\n/g, '<br>');
-    return '<p>' + s + '</p>';
+    return marked.parse(text);
   }
 
   function tcAddUser(text) {
