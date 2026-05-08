@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
 
-def split_text(text: str, chunk_size: int = 400, overlap: int = 40) -> list[str]:
+def split_text(text: str, chunk_size: int = 400, overlap: int = 80) -> list[str]:
     words = text.split()
     chunks = []
     i = 0

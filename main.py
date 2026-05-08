@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import threading
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 
@@ -82,6 +83,66 @@ async def chat(request: Request, body: ChatRequest):
         metrics.upsert_conversation(body.session_id, body.page_url)
         metrics.log_turn(body.session_id, msg, reply, input_tokens, output_tokens)
     return {"reply": reply}
+
+
+@app.post("/api/chat/stream")
+@limiter.limit(RATE_LIMIT)
+async def chat_stream(request: Request, body: ChatRequest):
+    msg = body.message.strip()
+    if not msg:
+        raise HTTPException(400, "Message cannot be empty")
+    if len(msg) > MAX_MESSAGE_LENGTH:
+        raise HTTPException(400, f"Message exceeds {MAX_MESSAGE_LENGTH} character limit")
+
+    async def generate():
+        reply_parts: list[str] = []
+        try:
+            # Run blocking generator in a thread, feed tokens via a queue
+            q: asyncio.Queue = asyncio.Queue()
+            loop = asyncio.get_event_loop()
+
+            def run():
+                try:
+                    for item in rag.chat_stream(msg, body.history):
+                        loop.call_soon_threadsafe(q.put_nowait, item)
+                except Exception as exc:
+                    loop.call_soon_threadsafe(q.put_nowait, {"error": str(exc)})
+                finally:
+                    loop.call_soon_threadsafe(q.put_nowait, None)  # sentinel
+
+            threading.Thread(target=run, daemon=True).start()
+
+            input_tokens = output_tokens = 0
+            while True:
+                item = await q.get()
+                if item is None:
+                    break
+                if isinstance(item, dict):
+                    if "error" in item:
+                        yield f"data: {json.dumps({'error': item['error']})}\n\n"
+                        return
+                    input_tokens = item.get("input_tokens", 0)
+                    output_tokens = item.get("output_tokens", 0)
+                else:
+                    reply_parts.append(item)
+                    yield f"data: {json.dumps({'token': item})}\n\n"
+
+            reply = "".join(reply_parts)
+            metrics.log(input_tokens, output_tokens, rag.provider)
+            if body.session_id:
+                metrics.upsert_conversation(body.session_id, body.page_url)
+                metrics.log_turn(body.session_id, msg, reply, input_tokens, output_tokens)
+            yield f"data: {json.dumps({'done': True})}\n\n"
+
+        except Exception as e:
+            print(f"[chat/stream] error: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 # ── Ingest ────────────────────────────────────────────────────────────────────

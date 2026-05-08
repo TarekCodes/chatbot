@@ -107,6 +107,50 @@
     button.secondary {
       background: #f3f4f6; color: #374151; border: 1px solid #d1d5db;
     }
+
+    /* ── Test Chat ── */
+    #test-messages {
+      height: 320px; overflow-y: auto; border: 1px solid #e5e7eb;
+      border-radius: 10px; padding: 12px; background: #f9fafb;
+      display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;
+    }
+    .tc-msg { display: flex; flex-direction: column; max-width: 85%; }
+    .tc-msg.user { align-self: flex-end; align-items: flex-end; }
+    .tc-msg.bot  { align-self: flex-start; }
+    .tc-bubble {
+      padding: 9px 13px; border-radius: 14px;
+      font-size: 13px; line-height: 1.55; word-break: break-word;
+    }
+    .tc-msg.user .tc-bubble { background: #4f46e5; color: #fff; border-bottom-right-radius: 3px; }
+    .tc-msg.bot  .tc-bubble {
+      background: #fff; color: #111; border: 1px solid #e5e7eb;
+      border-bottom-left-radius: 3px;
+    }
+    .tc-msg.bot .tc-bubble strong { font-weight: 600; }
+    .tc-msg.bot .tc-bubble em { font-style: italic; }
+    .tc-msg.bot .tc-bubble code {
+      background: #f3f4f6; border: 1px solid #e5e7eb;
+      border-radius: 4px; padding: 1px 5px; font-family: monospace; font-size: 12px;
+    }
+    .tc-msg.bot .tc-bubble pre {
+      background: #1e293b; color: #e2e8f0; border-radius: 8px;
+      padding: 9px 11px; margin: 5px 0; overflow-x: auto; font-size: 12px;
+    }
+    .tc-msg.bot .tc-bubble pre code { background: none; border: none; padding: 0; color: inherit; }
+    .tc-msg.bot .tc-bubble ul, .tc-msg.bot .tc-bubble ol { padding-left: 16px; margin: 3px 0; }
+    .tc-msg.bot .tc-bubble p { margin: 3px 0; }
+    .tc-typing { display: flex; gap: 4px; align-items: center; padding: 9px 13px; }
+    .tc-dot { width: 6px; height: 6px; border-radius: 50%; background: #9ca3af; animation: bounce .9s infinite; }
+    .tc-dot:nth-child(2) { animation-delay: .15s; }
+    .tc-dot:nth-child(3) { animation-delay: .30s; }
+    #test-input-row { display: flex; gap: 8px; }
+    #test-input {
+      flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+      font-size: 14px; font-family: inherit; outline: none; resize: none;
+      line-height: 1.45; max-height: 100px; overflow-y: auto;
+    }
+    #test-input:focus { border-color: #4f46e5; }
+    #test-send { padding: 8px 16px; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -123,6 +167,19 @@
     <h2>Admin Key</h2>
     <label for="admin-key">Enter your ADMIN_KEY (leave blank if not set)</label>
     <input type="password" id="admin-key" placeholder="admin key…" />
+  </div>
+
+  <!-- Test Chat -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h2 style="margin:0">Test Chat</h2>
+      <button onclick="clearTestChat()" style="background:#f3f4f6;color:#374151;padding:6px 12px;font-size:13px">Clear</button>
+    </div>
+    <div id="test-messages"></div>
+    <div id="test-input-row">
+      <textarea id="test-input" rows="1" placeholder="Type a message to test the bot…"></textarea>
+      <button id="test-send">Send</button>
+    </div>
   </div>
 
   <!-- Upload File -->
@@ -563,6 +620,128 @@
   loadMetrics();
   loadConversations();
   loadSources();
+
+  // ── Test Chat ──────────────────────────────────────────────────────────────
+  var tcHistory = [];
+  var tcInput   = document.getElementById('test-input');
+  var tcSend    = document.getElementById('test-send');
+  var tcMsgs    = document.getElementById('test-messages');
+
+  function tcMdToHtml(text) {
+    var s = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    s = s.replace(/```(?:\w+)?\n?([\s\S]*?)```/g, function(_, code) { return '<pre><code>' + code.trim() + '</code></pre>'; });
+    s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    s = s.replace(/^#{1,3} (.+)$/gm, '<strong>$1</strong>');
+    s = s.replace(/^[ \t]*[-*+] (.+)$/gm, '<li>$1</li>');
+    s = s.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    s = s.replace(/^[ \t]*\d+\. (.+)$/gm, '<li>$1</li>');
+    s = s.replace(/\n{2,}/g, '</p><p>');
+    s = s.replace(/\n/g, '<br>');
+    return '<p>' + s + '</p>';
+  }
+
+  function tcAddUser(text) {
+    var d = document.createElement('div');
+    d.className = 'tc-msg user';
+    d.innerHTML = '<div class="tc-bubble">' + escHtml(text) + '</div>';
+    tcMsgs.appendChild(d);
+    tcMsgs.scrollTop = tcMsgs.scrollHeight;
+  }
+
+  function tcAddBot(text) {
+    var d = document.createElement('div');
+    d.className = 'tc-msg bot';
+    d.innerHTML = '<div class="tc-bubble">' + tcMdToHtml(text) + '</div>';
+    tcMsgs.appendChild(d);
+    tcMsgs.scrollTop = tcMsgs.scrollHeight;
+    return d;
+  }
+
+  function tcShowTyping() {
+    var d = document.createElement('div');
+    d.className = 'tc-msg bot';
+    d.innerHTML = '<div class="tc-bubble tc-typing"><span class="tc-dot"></span><span class="tc-dot"></span><span class="tc-dot"></span></div>';
+    tcMsgs.appendChild(d);
+    tcMsgs.scrollTop = tcMsgs.scrollHeight;
+    return d;
+  }
+
+  function clearTestChat() {
+    tcHistory = [];
+    tcMsgs.innerHTML = '';
+  }
+
+  tcInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+  });
+  tcInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); tcSendMsg(); }
+  });
+  tcSend.addEventListener('click', tcSendMsg);
+
+  async function tcSendMsg() {
+    var text = tcInput.value.trim();
+    if (!text || tcSend.disabled) return;
+    tcInput.value = '';
+    tcInput.style.height = 'auto';
+    tcSend.disabled = true;
+    tcAddUser(text);
+    var typing = tcShowTyping();
+
+    try {
+      var res = await fetch(apiBase() + '/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history: tcHistory })
+      });
+      if (!res.ok) {
+        var err = await res.json().catch(function() { return {}; });
+        throw new Error('Error ' + res.status + ': ' + (err.detail || 'unknown'));
+      }
+
+      typing.remove();
+      var botDiv = tcAddBot('');
+      var bubble = botDiv.querySelector('.tc-bubble');
+      var replyText = '';
+
+      var reader = res.body.getReader();
+      var decoder = new TextDecoder();
+      var buf = '';
+      while (true) {
+        var chunk = await reader.read();
+        if (chunk.done) break;
+        buf += decoder.decode(chunk.value, { stream: true });
+        var lines = buf.split('\n');
+        buf = lines.pop();
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          if (!line.startsWith('data: ')) continue;
+          var payload = JSON.parse(line.slice(6));
+          if (payload.error) throw new Error(payload.error);
+          if (payload.token) {
+            replyText += payload.token;
+            bubble.innerHTML = tcMdToHtml(replyText);
+            tcMsgs.scrollTop = tcMsgs.scrollHeight;
+          }
+        }
+      }
+
+      if (!replyText) replyText = '(no response)';
+      tcHistory.push({ role: 'user', content: text });
+      tcHistory.push({ role: 'assistant', content: replyText });
+      if (tcHistory.length > 20) tcHistory = tcHistory.slice(-20);
+
+    } catch(e) {
+      typing.remove();
+      tcAddBot('Error: ' + e.message);
+    } finally {
+      tcSend.disabled = false;
+      tcInput.focus();
+    }
+  }
 </script>
 </body>
 </html>

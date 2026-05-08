@@ -10,3 +10,4 @@ beautifulsoup4>=4.12.3
 requests>=2.32.3
 python-multipart>=0.0.12
 python-dotenv>=1.0.1
+flashrank>=0.2.9

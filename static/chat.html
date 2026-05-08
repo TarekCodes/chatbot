@@ -220,7 +220,7 @@
     var typing = showTyping();
 
     try {
-      var res = await fetch('/api/chat', {
+      var res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, history: chatHistory, session_id: SESSION_ID, page_url: PAGE_URL })
@@ -231,15 +231,40 @@
         if (Array.isArray(detail)) detail = detail.map(function(e) { return e.loc.join('.') + ': ' + e.msg; }).join('; ');
         throw new Error('Server error ' + res.status + (detail ? ': ' + detail : ''));
       }
-      var data = await res.json();
-      var reply = data.reply || 'Sorry, I could not get a response.';
-
-      chatHistory.push({ role: 'user', content: text });
-      chatHistory.push({ role: 'assistant', content: reply });
-      if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
 
       typing.remove();
-      addBotMsg(reply);
+      var botDiv = addBotMsg('');
+      var bubble = botDiv.querySelector('.bubble');
+      var replyText = '';
+
+      var reader = res.body.getReader();
+      var decoder = new TextDecoder();
+      var buf = '';
+
+      while (true) {
+        var chunk = await reader.read();
+        if (chunk.done) break;
+        buf += decoder.decode(chunk.value, { stream: true });
+        var lines = buf.split('\n');
+        buf = lines.pop();
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          if (!line.startsWith('data: ')) continue;
+          var payload = JSON.parse(line.slice(6));
+          if (payload.error) throw new Error(payload.error);
+          if (payload.token) {
+            replyText += payload.token;
+            bubble.innerHTML = mdToHtml(replyText);
+            scrollDown();
+          }
+        }
+      }
+
+      if (!replyText) replyText = 'Sorry, I could not get a response.';
+      chatHistory.push({ role: 'user', content: text });
+      chatHistory.push({ role: 'assistant', content: replyText });
+      if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+
     } catch(e) {
       console.error('[Chat error]', e);
       typing.remove();
