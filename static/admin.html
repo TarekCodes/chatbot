@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chatbot Admin</title>
   <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
@@ -254,6 +255,20 @@
       <button onclick="loadMetrics()" class="secondary" style="padding:6px 12px;font-size:13px">Refresh</button>
     </div>
     <div id="metrics-totals" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px"></div>
+    <div id="metrics-charts" style="display:none">
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;color:#64748b;font-weight:500;margin-bottom:8px">Messages per day</div>
+        <canvas id="chart-messages" height="80"></canvas>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;color:#64748b;font-weight:500;margin-bottom:8px">Tokens per day</div>
+        <canvas id="chart-tokens" height="80"></canvas>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;color:#64748b;font-weight:500;margin-bottom:8px">Estimated cost per day ($)</div>
+        <canvas id="chart-cost" height="80"></canvas>
+      </div>
+    </div>
     <div id="metrics-table"></div>
   </div>
 
@@ -704,6 +719,25 @@
     } catch(e) { console.error(e); }
   }
 
+  var _charts = {};
+
+  function mkChart(id, type, labels, datasets) {
+    if (_charts[id]) _charts[id].destroy();
+    var ctx = document.getElementById(id).getContext('2d');
+    _charts[id] = new Chart(ctx, {
+      type: type,
+      data: { labels: labels, datasets: datasets },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#94a3b8', font: { size: 12 } } } },
+        scales: {
+          x: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { color: '#1e293b' } },
+          y: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { color: '#1e293b' }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
   function renderMetrics(totals, daily) {
     var totalCost = daily.reduce(function(sum, r) {
       return sum + estimateCost(r.provider, r.input_tokens, r.output_tokens);
@@ -721,6 +755,7 @@
     }).join('');
 
     if (!daily.length) {
+      document.getElementById('metrics-charts').style.display = 'none';
       document.getElementById('metrics-table').innerHTML =
         '<p style="color:#475569;font-size:14px;text-align:center;padding:16px 0">No data yet — messages will appear here after the first chat.</p>';
       return;
@@ -735,7 +770,41 @@
       byDay[r.day].cost          += estimateCost(r.provider, r.input_tokens, r.output_tokens);
     });
 
-    var rows = Object.values(byDay).sort(function(a, b) { return b.day.localeCompare(a.day); });
+    var rows = Object.values(byDay).sort(function(a, b) { return a.day.localeCompare(b.day); });
+    var labels = rows.map(function(r) { return r.day; });
+
+    document.getElementById('metrics-charts').style.display = 'block';
+
+    mkChart('chart-messages', 'line', labels, [{
+      label: 'Messages',
+      data: rows.map(function(r) { return r.messages; }),
+      borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,.15)',
+      fill: true, tension: 0.3, pointRadius: 3, pointHoverRadius: 5
+    }]);
+
+    mkChart('chart-tokens', 'line', labels, [
+      {
+        label: 'Input tokens',
+        data: rows.map(function(r) { return r.input_tokens; }),
+        borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,.1)',
+        fill: true, tension: 0.3, pointRadius: 3, pointHoverRadius: 5
+      },
+      {
+        label: 'Output tokens',
+        data: rows.map(function(r) { return r.output_tokens; }),
+        borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,.1)',
+        fill: true, tension: 0.3, pointRadius: 3, pointHoverRadius: 5
+      }
+    ]);
+
+    mkChart('chart-cost', 'bar', labels, [{
+      label: 'Cost ($)',
+      data: rows.map(function(r) { return r.cost.toFixed(4); }),
+      backgroundColor: 'rgba(52,211,153,.25)',
+      borderColor: '#34d399', borderWidth: 1, borderRadius: 4
+    }]);
+
+    rows.sort(function(a, b) { return b.day.localeCompare(a.day); });
     document.getElementById('metrics-table').innerHTML =
       '<table><thead><tr><th>Date</th><th>Messages</th><th>Input tokens</th><th>Output tokens</th><th>Est. cost</th></tr></thead><tbody>' +
       rows.map(function(r) {

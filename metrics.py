@@ -106,7 +106,7 @@ def log_turn(session_id: str, user_message: str, bot_reply: str,
     except Exception as e:
         print(f"[metrics] log_turn error: {e}")
 
-def get_conversations(limit: int = 50) -> list[dict]:
+def get_conversations() -> list[dict]:
     try:
         with _conn() as c:
             rows = c.execute("""
@@ -117,8 +117,7 @@ def get_conversations(limit: int = 50) -> list[dict]:
                 LEFT JOIN turns t ON t.conversation_id = c.id
                 GROUP BY c.id
                 ORDER BY c.started_at DESC
-                LIMIT ?
-            """, (limit,)).fetchall()
+            """).fetchall()
         return [{"id": r[0], "started_at": r[1], "page_url": r[2],
                  "turns": r[3], "first_message": r[4]} for r in rows]
     except Exception as e:
