@@ -108,6 +108,18 @@
     button.secondary {
       background: #f3f4f6; color: #374151; border: 1px solid #d1d5db;
     }
+    .pagination {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 12px; font-size: 13px; color: #6b7280;
+    }
+    .pagination-btns { display: flex; gap: 4px; }
+    .pg-btn {
+      padding: 5px 10px; border-radius: 6px; border: 1px solid #d1d5db;
+      background: #fff; color: #374151; cursor: pointer; font-size: 13px;
+    }
+    .pg-btn:hover:not(:disabled) { background: #f3f4f6; }
+    .pg-btn.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    .pg-btn:disabled { opacity: .4; cursor: default; }
 
     /* ── Test Chat ── */
     #test-messages {
@@ -381,13 +393,27 @@
     }
   }
 
+  var _sources = [];
+  var _sourcesPage = 0;
+  var PAGE_SIZE = 10;
+
   function renderSources(sources) {
+    _sources = sources;
+    _sourcesPage = 0;
+    renderSourcesPage();
+  }
+
+  function renderSourcesPage() {
     var container = document.getElementById('sources-container');
-    if (!sources.length) {
+    if (!_sources.length) {
       container.innerHTML = '<p id="sources-empty">No sources yet. Upload a document or ingest a URL above.</p>';
       return;
     }
-    var rows = sources.map(function(s) {
+    var total = _sources.length;
+    var pages = Math.ceil(total / PAGE_SIZE);
+    var start = _sourcesPage * PAGE_SIZE;
+    var slice = _sources.slice(start, start + PAGE_SIZE);
+    var rows = slice.map(function(s) {
       return '<tr>' +
         '<td>' + escHtml(s.source) + '</td>' +
         '<td><span class="badge">' + s.chunks + ' chunks</span></td>' +
@@ -397,8 +423,12 @@
         '</td>' +
         '</tr>';
     }).join('');
-    container.innerHTML = '<table><thead><tr><th>Source</th><th>Chunks</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+    container.innerHTML =
+      '<table><thead><tr><th>Source</th><th>Chunks</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      (pages > 1 ? renderPager(total, _sourcesPage, pages, 'goSourcesPage') : '');
   }
+
+  function goSourcesPage(p) { _sourcesPage = p; renderSourcesPage(); }
 
   async function deleteSource(source) {
     if (!confirm('Delete "' + source + '"?')) return;
@@ -510,6 +540,38 @@
   });
 
   function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function renderPager(total, current, pages, fn) {
+    var start = current * PAGE_SIZE + 1;
+    var end = Math.min(start + PAGE_SIZE - 1, total);
+    var btns = '';
+    // Prev
+    btns += '<button class="pg-btn" onclick="' + fn + '(' + (current - 1) + ')"' + (current === 0 ? ' disabled' : '') + '>&#8592;</button>';
+    // Page numbers — show up to 5 around current
+    var lo = Math.max(0, current - 2);
+    var hi = Math.min(pages - 1, current + 2);
+    if (lo > 0) btns += '<button class="pg-btn" onclick="' + fn + '(0)">1</button>' + (lo > 1 ? '<span style="padding:0 4px">…</span>' : '');
+    for (var i = lo; i <= hi; i++) {
+      btns += '<button class="pg-btn' + (i === current ? ' active' : '') + '" onclick="' + fn + '(' + i + ')">' + (i + 1) + '</button>';
+    }
+    if (hi < pages - 1) btns += (hi < pages - 2 ? '<span style="padding:0 4px">…</span>' : '') + '<button class="pg-btn" onclick="' + fn + '(' + (pages - 1) + ')">' + pages + '</button>';
+    // Next
+    btns += '<button class="pg-btn" onclick="' + fn + '(' + (current + 1) + ')"' + (current === pages - 1 ? ' disabled' : '') + '>&#8594;</button>';
+    return '<div class="pagination"><span>' + start + '–' + end + ' of ' + total + '</span><div class="pagination-btns">' + btns + '</div></div>';
+  }
+
+  var _estFmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
+  function fmtTime(ts) {
+    if (!ts) return '—';
+    var d = new Date(ts.endsWith('Z') ? ts : ts + 'Z');
+    var p = _estFmt.formatToParts(d);
+    var get = function(t) { return p.find(function(x) { return x.type === t; }).value; };
+    return get('year') + '-' + get('month') + '-' + get('day') + ' ' + get('hour') + ':' + get('minute') + ' ET';
+  }
   function escAttr(s) { return s.replace(/'/g,"\\'"); }
 
   async function loadConversations() {
@@ -522,14 +584,27 @@
     } catch(e) { console.error(e); }
   }
 
+  var _convos = [];
+  var _convosPage = 0;
+
   function renderConversations(convos) {
+    _convos = convos;
+    _convosPage = 0;
+    renderConvosPage();
+  }
+
+  function renderConvosPage() {
     var container = document.getElementById('conversations-container');
-    if (!convos.length) {
+    if (!_convos.length) {
       container.innerHTML = '<p style="color:#9ca3af;font-size:14px;text-align:center;padding:20px 0">No conversations yet.</p>';
       return;
     }
-    var rows = convos.map(function(c) {
-      var date = c.started_at ? c.started_at.slice(0, 16).replace('T', ' ') : '—';
+    var total = _convos.length;
+    var pages = Math.ceil(total / PAGE_SIZE);
+    var start = _convosPage * PAGE_SIZE;
+    var slice = _convos.slice(start, start + PAGE_SIZE);
+    var rows = slice.map(function(c) {
+      var date = fmtTime(c.started_at);
       var preview = c.first_message ? escHtml(c.first_message.slice(0, 60)) + (c.first_message.length > 60 ? '…' : '') : '—';
       var page = c.page_url ? escHtml(c.page_url.replace(/^https?:\/\//, '').slice(0, 40)) : '—';
       return '<tr>' +
@@ -540,8 +615,12 @@
         '<td><button class="secondary" onclick="viewConversation(\'' + escAttr(c.id) + '\')" style="padding:5px 10px;font-size:12px">View</button></td>' +
         '</tr>';
     }).join('');
-    container.innerHTML = '<table><thead><tr><th>Started</th><th>First message</th><th>Page</th><th>Turns</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+    container.innerHTML =
+      '<table><thead><tr><th>Started</th><th>First message</th><th>Page</th><th>Turns</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      (pages > 1 ? renderPager(total, _convosPage, pages, 'goConvosPage') : '');
   }
+
+  function goConvosPage(p) { _convosPage = p; renderConvosPage(); }
 
   async function viewConversation(sessionId) {
     document.getElementById('modal-title').textContent = 'Conversation';
@@ -558,7 +637,7 @@
         return;
       }
       document.getElementById('modal-body').innerHTML = turns.map(function(t) {
-        var time = t.timestamp ? t.timestamp.slice(0, 16).replace('T', ' ') : '';
+        var time = fmtTime(t.timestamp);
         return '<div style="margin-bottom:16px">' +
           '<div style="font-size:11px;color:#9ca3af;margin-bottom:4px">' + time + '</div>' +
           '<div style="background:#ede9fe;border-radius:10px 10px 2px 10px;padding:9px 12px;font-size:13px;margin-bottom:6px"><strong>User:</strong> ' + escHtml(t.user_message) + '</div>' +
