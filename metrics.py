@@ -125,6 +125,22 @@ def get_conversations(limit: int = 50) -> list[dict]:
         print(f"[metrics] get_conversations error: {e}")
         return []
 
+def delete_oldest_conversations(count: int) -> int:
+    try:
+        with _conn() as c:
+            ids = [r[0] for r in c.execute(
+                "SELECT id FROM conversations ORDER BY started_at ASC LIMIT ?", (count,)
+            ).fetchall()]
+            if not ids:
+                return 0
+            placeholders = ",".join("?" * len(ids))
+            c.execute(f"DELETE FROM turns WHERE conversation_id IN ({placeholders})", ids)
+            c.execute(f"DELETE FROM conversations WHERE id IN ({placeholders})", ids)
+        return len(ids)
+    except Exception as e:
+        print(f"[metrics] delete_oldest_conversations error: {e}")
+        return 0
+
 def get_turns(session_id: str) -> list[dict]:
     try:
         with _conn() as c:

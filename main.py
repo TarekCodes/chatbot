@@ -278,3 +278,10 @@ async def delete_source(source: str, key: str | None = None):
     check_admin(key)
     rag.delete_source(source)
     return {"status": "ok"}
+
+
+@app.delete("/api/conversations/oldest")
+async def delete_oldest_conversations(count: int = 1000, key: str | None = None):
+    check_admin(key)
+    deleted = metrics.delete_oldest_conversations(count)
+    return {"status": "ok", "deleted": deleted}

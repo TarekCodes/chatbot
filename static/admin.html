@@ -9,28 +9,31 @@
     *, *::before, *::after { box-sizing: border-box; }
     body {
       margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f3f4f6; color: #111; font-size: 15px;
+      background: #0f172a; color: #e2e8f0; font-size: 15px;
     }
     header {
-      background: #4f46e5; color: #fff; padding: 16px 24px;
+      background: #1e293b; color: #e2e8f0; padding: 16px 24px;
       display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid #334155;
     }
     header h1 { margin: 0; font-size: 18px; font-weight: 600; }
     main { max-width: 780px; margin: 32px auto; padding: 0 16px; }
 
     .card {
-      background: #fff; border-radius: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      background: #1e293b; border-radius: 12px;
+      border: 1px solid #334155;
       padding: 24px; margin-bottom: 24px;
     }
-    h2 { margin: 0 0 16px; font-size: 16px; font-weight: 600; color: #374151; }
+    h2 { margin: 0 0 16px; font-size: 16px; font-weight: 600; color: #cbd5e1; }
 
-    label { display: block; margin-bottom: 6px; font-weight: 500; color: #374151; }
+    label { display: block; margin-bottom: 6px; font-weight: 500; color: #94a3b8; }
     input[type=text], input[type=password], input[type=url] {
-      width: 100%; padding: 9px 12px; border: 1px solid #d1d5db;
+      width: 100%; padding: 9px 12px; border: 1px solid #334155;
       border-radius: 8px; font-size: 14px; outline: none;
+      background: #0f172a; color: #e2e8f0;
     }
-    input:focus { border-color: #4f46e5; }
+    input[type=number] { background: #0f172a; color: #e2e8f0; border: 1px solid #334155; }
+    input:focus { border-color: #6366f1; }
 
     .row { display: flex; gap: 10px; align-items: flex-end; }
     .row input { flex: 1; }
@@ -40,91 +43,96 @@
       border: none; border-radius: 8px; cursor: pointer;
       font-size: 14px; font-weight: 500; white-space: nowrap;
     }
-    button:disabled { opacity: .5; cursor: default; }
-    button.danger { background: #ef4444; }
+    button:hover:not(:disabled) { background: #4338ca; }
+    button:disabled { opacity: .4; cursor: default; }
+    button.danger { background: #dc2626; }
+    button.danger:hover:not(:disabled) { background: #b91c1c; }
 
     .file-label {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 9px 18px; background: #f3f4f6; color: #374151;
-      border: 1px dashed #d1d5db; border-radius: 8px; cursor: pointer;
+      padding: 9px 18px; background: #0f172a; color: #94a3b8;
+      border: 1px dashed #334155; border-radius: 8px; cursor: pointer;
       font-size: 14px; font-weight: 500; width: 100%; justify-content: center;
     }
-    .file-label:hover { background: #e9eaf0; }
+    .file-label:hover { background: #1e293b; border-color: #475569; }
     input[type=file] { display: none; }
 
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: #1e293b; color: #fff; padding: 10px 20px; border-radius: 8px;
+      background: #334155; color: #e2e8f0; padding: 10px 20px; border-radius: 8px;
       font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999;
     }
     .toast.show { opacity: 1; }
 
     table { width: 100%; border-collapse: collapse; }
-    th { text-align: left; font-size: 12px; color: #6b7280; font-weight: 500;
-         padding: 6px 8px; border-bottom: 1px solid #e5e7eb; }
-    td { padding: 10px 8px; border-bottom: 1px solid #f3f4f6; font-size: 13px;
-         word-break: break-all; }
+    th { text-align: left; font-size: 12px; color: #64748b; font-weight: 500;
+         padding: 6px 8px; border-bottom: 1px solid #334155; }
+    td { padding: 10px 8px; border-bottom: 1px solid #1e293b; font-size: 13px;
+         word-break: break-all; color: #cbd5e1; }
     tr:last-child td { border: none; }
     .badge {
-      display: inline-block; background: #ede9fe; color: #4f46e5;
+      display: inline-block; background: #312e81; color: #a5b4fc;
       border-radius: 99px; padding: 2px 8px; font-size: 12px; font-weight: 500;
     }
-    #sources-empty { color: #9ca3af; font-size: 14px; text-align: center; padding: 20px 0; }
+    #sources-empty { color: #475569; font-size: 14px; text-align: center; padding: 20px 0; }
 
     /* Modal */
     .modal-backdrop {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.65);
       z-index: 1000; align-items: center; justify-content: center;
     }
     .modal-backdrop.open { display: flex; }
     .modal {
-      background: #fff; border-radius: 14px; width: 90%; max-width: 700px;
-      max-height: 80vh; display: flex; flex-direction: column;
-      box-shadow: 0 16px 48px rgba(0,0,0,.2);
+      background: #1e293b; border: 1px solid #334155; border-radius: 14px;
+      width: 90%; max-width: 700px; max-height: 80vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0,0,0,.5);
     }
     .modal-header {
-      padding: 18px 20px; border-bottom: 1px solid #e5e7eb;
+      padding: 18px 20px; border-bottom: 1px solid #334155;
       display: flex; align-items: center; gap: 10px;
     }
-    .modal-header h3 { margin: 0; font-size: 15px; font-weight: 600; flex: 1;
+    .modal-header h3 { margin: 0; font-size: 15px; font-weight: 600; flex: 1; color: #e2e8f0;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .modal-close {
       background: none; border: none; font-size: 22px; cursor: pointer;
-      color: #6b7280; padding: 0 4px; line-height: 1;
+      color: #64748b; padding: 0 4px; line-height: 1;
     }
+    .modal-close:hover { color: #e2e8f0; }
     .modal-body { overflow-y: auto; padding: 16px 20px; flex: 1; }
     .chunk-item {
-      border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px;
+      border: 1px solid #334155; border-radius: 8px; margin-bottom: 12px;
       overflow: hidden;
     }
     .chunk-num {
-      background: #f9fafb; padding: 5px 12px; font-size: 11px;
-      color: #6b7280; font-weight: 600; border-bottom: 1px solid #e5e7eb;
+      background: #0f172a; padding: 5px 12px; font-size: 11px;
+      color: #64748b; font-weight: 600; border-bottom: 1px solid #334155;
     }
     .chunk-text {
       padding: 10px 12px; font-size: 13px; line-height: 1.6;
-      white-space: pre-wrap; word-break: break-word; color: #374151;
+      white-space: pre-wrap; word-break: break-word; color: #cbd5e1;
     }
     button.secondary {
-      background: #f3f4f6; color: #374151; border: 1px solid #d1d5db;
+      background: #1e293b; color: #cbd5e1; border: 1px solid #334155;
     }
+    button.secondary:hover:not(:disabled) { background: #334155; }
     .pagination {
       display: flex; align-items: center; justify-content: space-between;
-      margin-top: 12px; font-size: 13px; color: #6b7280;
+      margin-top: 12px; font-size: 13px; color: #64748b;
     }
     .pagination-btns { display: flex; gap: 4px; }
     .pg-btn {
-      padding: 5px 10px; border-radius: 6px; border: 1px solid #d1d5db;
-      background: #fff; color: #374151; cursor: pointer; font-size: 13px;
+      padding: 5px 10px; border-radius: 6px; border: 1px solid #334155;
+      background: #0f172a; color: #cbd5e1; cursor: pointer; font-size: 13px;
     }
-    .pg-btn:hover:not(:disabled) { background: #f3f4f6; }
+    .pg-btn:hover:not(:disabled) { background: #334155; }
     .pg-btn.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
     .pg-btn:disabled { opacity: .4; cursor: default; }
 
     /* ── Test Chat ── */
     #test-messages {
-      height: 320px; overflow-y: auto; border: 1px solid #e5e7eb;
-      border-radius: 10px; padding: 12px; background: #f9fafb;
+      height: 320px; overflow-y: auto; border: 1px solid #334155;
+      border-radius: 10px; padding: 12px; background: #0f172a;
       display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;
     }
     .tc-msg { display: flex; flex-direction: column; max-width: 85%; }
@@ -136,24 +144,24 @@
     }
     .tc-msg.user .tc-bubble { background: #4f46e5; color: #fff; border-bottom-right-radius: 3px; }
     .tc-msg.bot  .tc-bubble {
-      background: #fff; color: #111; border: 1px solid #e5e7eb;
+      background: #1e293b; color: #e2e8f0; border: 1px solid #334155;
       border-bottom-left-radius: 3px;
     }
-    .tc-msg.bot .tc-bubble strong { font-weight: 600; }
+    .tc-msg.bot .tc-bubble strong { font-weight: 700; }
     .tc-msg.bot .tc-bubble em { font-style: italic; }
     .tc-msg.bot .tc-bubble code {
-      background: #f3f4f6; border: 1px solid #e5e7eb;
+      background: #0f172a; border: 1px solid #334155;
       border-radius: 4px; padding: 1px 5px; font-family: monospace; font-size: 12px;
     }
     .tc-msg.bot .tc-bubble pre {
-      background: #1e293b; color: #e2e8f0; border-radius: 8px;
+      background: #0f172a; color: #e2e8f0; border-radius: 8px; border: 1px solid #334155;
       padding: 9px 11px; margin: 5px 0; overflow-x: auto; font-size: 12px;
     }
     .tc-msg.bot .tc-bubble pre code { background: none; border: none; padding: 0; color: inherit; }
     .tc-msg.bot .tc-bubble ul, .tc-msg.bot .tc-bubble ol { padding-left: 16px; margin: 3px 0; }
     .tc-msg.bot .tc-bubble p { margin: 3px 0; }
     .tc-typing { display: flex; gap: 4px; align-items: center; padding: 9px 13px; }
-    .tc-dot { width: 6px; height: 6px; border-radius: 50%; background: #9ca3af; animation: bounce .9s infinite; }
+    .tc-dot { width: 6px; height: 6px; border-radius: 50%; background: #475569; animation: bounce .9s infinite; }
     .tc-dot:nth-child(2) { animation-delay: .15s; }
     .tc-dot:nth-child(3) { animation-delay: .30s; }
     @keyframes bounce {
@@ -162,17 +170,18 @@
     }
     #test-input-row { display: flex; gap: 8px; }
     #test-input {
-      flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+      flex: 1; padding: 8px 12px; border: 1px solid #334155; border-radius: 8px;
       font-size: 14px; font-family: inherit; outline: none; resize: none;
       line-height: 1.45; max-height: 100px; overflow-y: auto;
+      background: #0f172a; color: #e2e8f0;
     }
-    #test-input:focus { border-color: #4f46e5; }
+    #test-input:focus { border-color: #6366f1; }
     #test-send { padding: 8px 16px; flex-shrink: 0; }
     #test-lock {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 8px; padding: 32px 0; color: #9ca3af; font-size: 13px; text-align: center;
+      gap: 8px; padding: 32px 0; color: #475569; font-size: 13px; text-align: center;
     }
-    #test-lock svg { width: 28px; height: 28px; fill: #d1d5db; }
+    #test-lock svg { width: 28px; height: 28px; fill: #334155; }
     #test-key-status { font-size: 12px; margin-top: 2px; }
   </style>
 </head>
@@ -198,7 +207,7 @@
       <h2 style="margin:0">Test Chat</h2>
       <div style="display:flex;align-items:center;gap:10px">
         <span id="test-key-status"></span>
-        <button onclick="clearTestChat()" style="background:#f3f4f6;color:#374151;padding:6px 12px;font-size:13px">Clear</button>
+        <button onclick="clearTestChat()" class="secondary" style="padding:6px 12px;font-size:13px">Clear</button>
       </div>
     </div>
     <div id="test-lock">
@@ -217,7 +226,7 @@
   <!-- Upload File -->
   <div class="card">
     <h2>Upload Document</h2>
-    <p style="margin:0 0 14px;color:#6b7280;font-size:13px">Supported: PDF, DOCX</p>
+    <p style="margin:0 0 14px;color:#64748b;font-size:13px">Supported: PDF, DOCX</p>
     <label class="file-label" for="file-input">
       <svg style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 12l-4-4m0 0L8 12m4-4v12"/>
@@ -231,7 +240,7 @@
   <!-- Ingest URL -->
   <div class="card">
     <h2>Ingest URL</h2>
-    <p style="margin:0 0 14px;color:#6b7280;font-size:13px">Scrape and index any webpage</p>
+    <p style="margin:0 0 14px;color:#64748b;font-size:13px">Scrape and index any webpage</p>
     <div class="row">
       <input type="url" id="url-input" placeholder="https://example.com/about" />
       <button id="url-btn">Ingest</button>
@@ -242,7 +251,7 @@
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h2 style="margin:0">Usage Metrics</h2>
-      <button onclick="loadMetrics()" style="background:#f3f4f6;color:#374151;padding:6px 12px;font-size:13px">Refresh</button>
+      <button onclick="loadMetrics()" class="secondary" style="padding:6px 12px;font-size:13px">Refresh</button>
     </div>
     <div id="metrics-totals" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px"></div>
     <div id="metrics-table"></div>
@@ -252,28 +261,31 @@
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h2 style="margin:0">Conversations</h2>
-      <button onclick="loadConversations()" style="background:#f3f4f6;color:#374151;padding:6px 12px;font-size:13px">Refresh</button>
+      <div style="display:flex;gap:8px">
+        <button onclick="loadConversations()" class="secondary" style="padding:6px 12px;font-size:13px">Refresh</button>
+        <button onclick="deleteOldestConversations()" class="danger" style="padding:6px 12px;font-size:13px">Delete oldest 1000</button>
+      </div>
     </div>
     <div id="conversations-container">
-      <p style="color:#9ca3af;font-size:14px;text-align:center;padding:20px 0">No conversations yet.</p>
+      <p style="color:#475569;font-size:14px;text-align:center;padding:20px 0">No conversations yet.</p>
     </div>
   </div>
 
   <!-- Crawl Site -->
   <div class="card">
     <h2>Crawl Entire Website</h2>
-    <p style="margin:0 0 14px;color:#6b7280;font-size:13px">Enter your homepage URL — the crawler will follow every link on the same domain and index all pages automatically.</p>
+    <p style="margin:0 0 14px;color:#64748b;font-size:13px">Enter your homepage URL — the crawler will follow every link on the same domain and index all pages automatically.</p>
     <div class="row" style="margin-bottom:10px">
       <input type="url" id="crawl-url" placeholder="https://yoursite.com" />
     </div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-      <label style="margin:0;font-weight:500;color:#374151;font-size:13px">Max pages:</label>
-      <input type="number" id="crawl-max" value="50" min="1" max="200" style="width:80px;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px" />
+      <label style="margin:0;font-weight:500;color:#94a3b8;font-size:13px">Max pages:</label>
+      <input type="number" id="crawl-max" value="50" min="1" max="200" style="width:80px;padding:6px 10px;border-radius:8px;font-size:14px" />
     </div>
     <button id="crawl-btn" style="width:100%">Crawl Site</button>
     <div id="crawl-results" style="margin-top:14px;display:none">
       <div id="crawl-summary" style="font-size:13px;font-weight:600;margin-bottom:8px"></div>
-      <div id="crawl-log" style="max-height:180px;overflow-y:auto;font-size:12px;color:#6b7280;background:#f9fafb;border-radius:8px;padding:10px;line-height:1.8"></div>
+      <div id="crawl-log" style="max-height:180px;overflow-y:auto;font-size:12px;color:#64748b;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;line-height:1.8"></div>
     </div>
   </div>
 
@@ -281,7 +293,7 @@
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h2 style="margin:0">Indexed Sources</h2>
-      <button onclick="loadSources()" style="background:#f3f4f6;color:#374151;padding:6px 12px;font-size:13px">Refresh</button>
+      <button onclick="loadSources()" class="secondary" style="padding:6px 12px;font-size:13px">Refresh</button>
     </div>
     <div id="sources-container">
       <p id="sources-empty">No sources yet. Upload a document or ingest a URL above.</p>
@@ -297,7 +309,7 @@
       <button class="modal-close" onclick="closeModalDirect()">&times;</button>
     </div>
     <div class="modal-body" id="modal-body">
-      <p style="color:#9ca3af;text-align:center">Loading…</p>
+      <p style="color:#475569;text-align:center">Loading…</p>
     </div>
   </div>
 </div>
@@ -475,11 +487,11 @@
 
       if (d.type === 'page') {
         log.innerHTML += '<span style="color:#16a34a">✓</span> ' + escHtml(d.url) +
-          ' <span style="color:#6b7280">(' + d.chunks + ' chunks)</span><br>';
+          ' <span style="color:#64748b">(' + d.chunks + ' chunks)</span><br>';
         summary.textContent = 'Crawling… ' + d.done + ' pages indexed · ' + d.queued + ' in queue';
       } else if (d.type === 'skip') {
-        log.innerHTML += '<span style="color:#9ca3af">—</span> ' + escHtml(d.url) +
-          ' <span style="color:#9ca3af">(no text)</span><br>';
+        log.innerHTML += '<span style="color:#475569">—</span> ' + escHtml(d.url) +
+          ' <span style="color:#475569">(no text)</span><br>';
       } else if (d.type === 'error') {
         log.innerHTML += '<span style="color:#ef4444">✗</span> ' + escHtml(d.url) +
           ' <span style="color:#ef4444">— ' + escHtml(d.error) + '</span><br>';
@@ -503,7 +515,7 @@
 
   async function viewChunks(source) {
     document.getElementById('modal-title').textContent = source;
-    document.getElementById('modal-body').innerHTML = '<p style="color:#9ca3af;text-align:center">Loading…</p>';
+    document.getElementById('modal-body').innerHTML = '<p style="color:#475569;text-align:center">Loading…</p>';
     document.getElementById('modal-backdrop').classList.add('open');
 
     try {
@@ -514,7 +526,7 @@
       var chunks = data.chunks || [];
 
       if (!chunks.length) {
-        document.getElementById('modal-body').innerHTML = '<p style="color:#9ca3af;text-align:center">No chunks found.</p>';
+        document.getElementById('modal-body').innerHTML = '<p style="color:#475569;text-align:center">No chunks found.</p>';
         return;
       }
 
@@ -596,7 +608,7 @@
   function renderConvosPage() {
     var container = document.getElementById('conversations-container');
     if (!_convos.length) {
-      container.innerHTML = '<p style="color:#9ca3af;font-size:14px;text-align:center;padding:20px 0">No conversations yet.</p>';
+      container.innerHTML = '<p style="color:#475569;font-size:14px;text-align:center;padding:20px 0">No conversations yet.</p>';
       return;
     }
     var total = _convos.length;
@@ -608,9 +620,9 @@
       var preview = c.first_message ? escHtml(c.first_message.slice(0, 60)) + (c.first_message.length > 60 ? '…' : '') : '—';
       var page = c.page_url ? escHtml(c.page_url.replace(/^https?:\/\//, '').slice(0, 40)) : '—';
       return '<tr>' +
-        '<td style="color:#6b7280;white-space:nowrap">' + date + '</td>' +
+        '<td style="color:#64748b;white-space:nowrap">' + date + '</td>' +
         '<td>' + preview + '</td>' +
-        '<td style="color:#6b7280">' + page + '</td>' +
+        '<td style="color:#64748b">' + page + '</td>' +
         '<td><span class="badge">' + c.turns + ' turns</span></td>' +
         '<td><button class="secondary" onclick="viewConversation(\'' + escAttr(c.id) + '\')" style="padding:5px 10px;font-size:12px">View</button></td>' +
         '</tr>';
@@ -622,9 +634,24 @@
 
   function goConvosPage(p) { _convosPage = p; renderConvosPage(); }
 
+  async function deleteOldestConversations() {
+    if (!confirm('Delete the oldest 1000 conversations and their messages? This cannot be undone.')) return;
+    try {
+      var url = apiBase() + '/api/conversations/oldest?count=1000';
+      if (adminKey()) url += '&key=' + encodeURIComponent(adminKey());
+      var res = await fetch(url, { method: 'DELETE' });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Delete failed');
+      showToast('Deleted ' + data.deleted + ' conversation' + (data.deleted !== 1 ? 's' : ''));
+      loadConversations();
+    } catch(e) {
+      showToast(e.message, true);
+    }
+  }
+
   async function viewConversation(sessionId) {
     document.getElementById('modal-title').textContent = 'Conversation';
-    document.getElementById('modal-body').innerHTML = '<p style="color:#9ca3af;text-align:center">Loading…</p>';
+    document.getElementById('modal-body').innerHTML = '<p style="color:#475569;text-align:center">Loading…</p>';
     document.getElementById('modal-backdrop').classList.add('open');
     try {
       var url = apiBase() + '/api/conversations/' + encodeURIComponent(sessionId);
@@ -633,15 +660,15 @@
       var data = await res.json();
       var turns = data.turns || [];
       if (!turns.length) {
-        document.getElementById('modal-body').innerHTML = '<p style="color:#9ca3af;text-align:center">No messages.</p>';
+        document.getElementById('modal-body').innerHTML = '<p style="color:#475569;text-align:center">No messages.</p>';
         return;
       }
       document.getElementById('modal-body').innerHTML = turns.map(function(t) {
         var time = fmtTime(t.timestamp);
         return '<div style="margin-bottom:16px">' +
-          '<div style="font-size:11px;color:#9ca3af;margin-bottom:4px">' + time + '</div>' +
-          '<div style="background:#ede9fe;border-radius:10px 10px 2px 10px;padding:9px 12px;font-size:13px;margin-bottom:6px"><strong>User:</strong> ' + escHtml(t.user_message) + '</div>' +
-          '<div style="background:#f3f4f6;border-radius:2px 10px 10px 10px;padding:9px 12px;font-size:13px"><strong>Bot:</strong> ' + escHtml(t.bot_reply) + '</div>' +
+          '<div style="font-size:11px;color:#475569;margin-bottom:4px">' + time + '</div>' +
+          '<div style="background:#312e81;border-radius:10px 10px 2px 10px;padding:9px 12px;font-size:13px;margin-bottom:6px;color:#e0e7ff"><strong>User:</strong> ' + escHtml(t.user_message) + '</div>' +
+          '<div style="background:#1e293b;border:1px solid #334155;border-radius:2px 10px 10px 10px;padding:9px 12px;font-size:13px;color:#cbd5e1"><strong>Bot:</strong> ' + escHtml(t.bot_reply) + '</div>' +
           '</div>';
       }).join('');
     } catch(e) {
@@ -652,7 +679,7 @@
   // ── Pricing table (per 1M tokens) ──────────────────────────────────────────
   var PRICING = {
     anthropic: { input: 3.00, output: 15.00 },
-    openai:    { input: 2.50, output: 10.00 },
+    openai:    { input: 0.25, output: 2.00 },
   };
 
   function estimateCost(provider, inputTok, outputTok) {
@@ -684,14 +711,14 @@
       ['Output tokens',   fmt(totals.output_tokens)],
       ['Est. cost (30d)', fmtCost(totalCost)],
     ].map(function(pair) {
-      return '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;min-width:130px">' +
-        '<div style="font-size:11px;color:#6b7280;font-weight:500;margin-bottom:4px">' + pair[0] + '</div>' +
-        '<div style="font-size:20px;font-weight:700;color:#111">' + pair[1] + '</div></div>';
+      return '<div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:12px 16px;min-width:130px">' +
+        '<div style="font-size:11px;color:#64748b;font-weight:500;margin-bottom:4px">' + pair[0] + '</div>' +
+        '<div style="font-size:20px;font-weight:700;color:#e2e8f0">' + pair[1] + '</div></div>';
     }).join('');
 
     if (!daily.length) {
       document.getElementById('metrics-table').innerHTML =
-        '<p style="color:#9ca3af;font-size:14px;text-align:center;padding:16px 0">No data yet — messages will appear here after the first chat.</p>';
+        '<p style="color:#475569;font-size:14px;text-align:center;padding:16px 0">No data yet — messages will appear here after the first chat.</p>';
       return;
     }
 
@@ -713,7 +740,7 @@
           fmtCost(r.cost) + '</td></tr>';
       }).join('') +
       '</tbody></table>' +
-      '<p style="margin-top:8px;font-size:11px;color:#9ca3af">Estimates: Anthropic $3/$15 · OpenAI $2.50/$10 per 1M tokens</p>';
+      '<p style="margin-top:8px;font-size:11px;color:#475569">Estimates: Anthropic $3/$15 · OpenAI $0.25/$2 per 1M tokens</p>';
   }
 
   // If no ADMIN_KEY is set on the server, unlock test chat immediately
