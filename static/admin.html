@@ -579,10 +579,14 @@
   });
   function fmtTime(ts) {
     if (!ts) return '—';
-    var d = new Date(ts.endsWith('Z') ? ts : ts + 'Z');
-    var p = _estFmt.formatToParts(d);
-    var get = function(t) { return p.find(function(x) { return x.type === t; }).value; };
-    return get('year') + '-' + get('month') + '-' + get('day') + ' ' + get('hour') + ':' + get('minute') + ' ET';
+    try {
+      var d = new Date(ts);
+      var p = _estFmt.formatToParts(d);
+      var get = function(t) { return p.find(function(x) { return x.type === t; }).value; };
+      return get('year') + '-' + get('month') + '-' + get('day') + ' ' + get('hour') + ':' + get('minute') + ' ET';
+    } catch(e) {
+      return ts.slice(0, 16).replace('T', ' ');
+    }
   }
   function escAttr(s) { return s.replace(/'/g,"\\'"); }
 
