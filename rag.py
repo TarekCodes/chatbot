@@ -83,15 +83,19 @@ class RAGEngine:
             return self._chat_openai(user_content, history)
         return self._chat_anthropic(user_content, history)
 
-    def chat_stream(self, message: str, history: list):
+    def chat_stream(self, message: str, history: list,
+                    model: str | None = None, provider: str | None = None):
         """Yields text tokens, then a final sentinel dict with token counts."""
         context_chunks = self.retrieve(message)
         user_content = self._build_user_content(message, context_chunks)
 
-        if self.provider == "openai":
-            yield from self._stream_openai(user_content, history)
+        effective_provider = (provider or self.provider).lower()
+        effective_model = model or self._model
+
+        if effective_provider == "openai":
+            yield from self._stream_openai(user_content, history, effective_model)
         else:
-            yield from self._stream_anthropic(user_content, history)
+            yield from self._stream_anthropic(user_content, history, effective_model)
 
     # ── helpers ───────────────────────────────────────────────────────────────
 
@@ -144,10 +148,10 @@ class RAGEngine:
 
     # ── streaming ─────────────────────────────────────────────────────────────
 
-    def _stream_anthropic(self, user_content: str, history: list):
+    def _stream_anthropic(self, user_content: str, history: list, model: str | None = None):
         input_tokens = output_tokens = 0
         with self._anthropic.messages.stream(
-            model=self._model,
+            model=model or self._model,
             max_tokens=1024,
             system=self.system_prompt,
             messages=self._build_anthropic_messages(user_content, history),
@@ -159,10 +163,10 @@ class RAGEngine:
             output_tokens = usage.output_tokens
         yield {"input_tokens": input_tokens, "output_tokens": output_tokens}
 
-    def _stream_openai(self, user_content: str, history: list):
+    def _stream_openai(self, user_content: str, history: list, model: str | None = None):
         input_tokens = output_tokens = 0
         stream = self._openai.chat.completions.create(
-            model=self._model,
+            model=model or self._model,
             max_completion_tokens=2048,
             messages=self._build_openai_messages(user_content, history),
             stream=True,

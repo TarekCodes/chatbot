@@ -63,6 +63,8 @@ class ChatRequest(BaseModel):
     history: list = []
     session_id: str | None = None
     page_url: str | None = None
+    model: str | None = None
+    provider: str | None = None
 
 
 @app.post("/api/chat")
@@ -103,7 +105,7 @@ async def chat_stream(request: Request, body: ChatRequest):
 
             def run():
                 try:
-                    for item in rag.chat_stream(msg, body.history):
+                    for item in rag.chat_stream(msg, body.history, model=body.model, provider=body.provider):
                         loop.call_soon_threadsafe(q.put_nowait, item)
                 except Exception as exc:
                     loop.call_soon_threadsafe(q.put_nowait, {"error": str(exc)})
