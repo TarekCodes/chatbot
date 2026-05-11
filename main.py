@@ -35,7 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MAX_MESSAGE_LENGTH = int(os.environ.get("MAX_MESSAGE_LENGTH", 500))
+MAX_MESSAGE_LENGTH = int(os.environ.get("MAX_MESSAGE_LENGTH", 600))
 RATE_LIMIT         = os.environ.get("RATE_LIMIT", "20/minute")
 
 rag = RAGEngine()

@@ -123,8 +123,8 @@
   <div id="messages"></div>
 
   <div id="input-area">
-    <textarea id="input" rows="1" placeholder="Type your message…" maxlength="500"></textarea>
-    <div id="char-count">0 / 500</div>
+    <textarea id="input" rows="1" placeholder="Type your message…" maxlength="600"></textarea>
+    <div id="char-count">0 / 600</div>
     <button id="send">Send</button>
   </div>
 </div>
@@ -195,7 +195,7 @@
 
     input.value = '';
     input.style.height = 'auto';
-    charCount.textContent = '0 / 500';
+    charCount.textContent = '0 / 600';
     charCount.className = '';
     sendBtn.disabled = true;
     addUserMsg(text);
@@ -272,8 +272,8 @@
     this.style.height = 'auto';
     this.style.height = Math.min(this.scrollHeight, 120) + 'px';
     var len = this.value.length;
-    charCount.textContent = len + ' / 500';
-    charCount.className = len >= 500 ? 'at-limit' : len >= 400 ? 'near-limit' : '';
+    charCount.textContent = len + ' / 600';
+    charCount.className = len >= 600 ? 'at-limit' : len >= 500 ? 'near-limit' : '';
   });
 </script>
 </body>
