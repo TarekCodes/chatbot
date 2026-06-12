@@ -122,7 +122,7 @@ class RAGEngine:
     def _chat_anthropic(self, user_content: str, history: list) -> tuple[str, int, int]:
         response = self._anthropic.messages.create(
             model=self._model,
-            max_tokens=1024,
+            max_tokens=1536,
             system=self.system_prompt,
             messages=self._build_anthropic_messages(user_content, history),
         )
@@ -133,7 +133,7 @@ class RAGEngine:
     def _chat_openai(self, user_content: str, history: list) -> tuple[str, int, int]:
         response = self._openai.chat.completions.create(
             model=self._model,
-            max_completion_tokens=2048,
+            max_completion_tokens=3072,
             messages=self._build_openai_messages(user_content, history),
         )
         choice = response.choices[0]
@@ -152,7 +152,7 @@ class RAGEngine:
         input_tokens = output_tokens = 0
         with self._anthropic.messages.stream(
             model=model or self._model,
-            max_tokens=1024,
+            max_tokens=1536,
             system=self.system_prompt,
             messages=self._build_anthropic_messages(user_content, history),
         ) as stream:
@@ -167,7 +167,7 @@ class RAGEngine:
         input_tokens = output_tokens = 0
         stream = self._openai.chat.completions.create(
             model=model or self._model,
-            max_completion_tokens=2048,
+            max_completion_tokens=3072,
             messages=self._build_openai_messages(user_content, history),
             stream=True,
             stream_options={"include_usage": True},
