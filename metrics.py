@@ -135,6 +135,9 @@ def delete_oldest_conversations(count: int) -> int:
             placeholders = ",".join("?" * len(ids))
             c.execute(f"DELETE FROM turns WHERE conversation_id IN ({placeholders})", ids)
             c.execute(f"DELETE FROM conversations WHERE id IN ({placeholders})", ids)
+        # Reclaim disk space — SQLite won't shrink the file without this
+        with _conn() as c:
+            c.execute("VACUUM")
         return len(ids)
     except Exception as e:
         print(f"[metrics] delete_oldest_conversations error: {e}")
