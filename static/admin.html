@@ -946,7 +946,7 @@ DREAM:
       var res = await fetch(apiBase() + '/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history: tcHistory, model: 'gpt-6-astra', provider: 'openai' })
+        body: JSON.stringify({ message: text, history: tcHistory, model: 'gpt-6-astra', provider: 'openai', key: adminKey() })
       });
       if (!res.ok) {
         var err = await res.json().catch(function() { return {}; });

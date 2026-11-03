@@ -36,6 +36,8 @@ app.add_middleware(
 )
 
 MAX_MESSAGE_LENGTH = int(os.environ.get("MAX_MESSAGE_LENGTH", 600))
+# Admin test chat only. The public widget keeps MAX_MESSAGE_LENGTH.
+ADMIN_MAX_MESSAGE_LENGTH = 8000
 RATE_LIMIT         = os.environ.get("RATE_LIMIT", "20/minute")
 
 rag = RAGEngine()
@@ -65,6 +67,14 @@ class ChatRequest(BaseModel):
     page_url: str | None = None
     model: str | None = None
     provider: str | None = None
+    key: str | None = None
+
+
+def message_limit_for(key: str | None) -> int:
+    """Admin callers get the adjustable admin cap; everyone else the public one."""
+    if ADMIN_KEY and key == ADMIN_KEY:
+        return ADMIN_MAX_MESSAGE_LENGTH
+    return MAX_MESSAGE_LENGTH
 
 
 @app.post("/api/chat")
@@ -73,8 +83,9 @@ async def chat(request: Request, body: ChatRequest):
     msg = body.message.strip()
     if not msg:
         raise HTTPException(400, "Message cannot be empty")
-    if len(msg) > MAX_MESSAGE_LENGTH:
-        raise HTTPException(400, f"Message exceeds {MAX_MESSAGE_LENGTH} character limit")
+    limit = message_limit_for(body.key)
+    if len(msg) > limit:
+        raise HTTPException(400, f"Message exceeds {limit} character limit")
     try:
         reply, input_tokens, output_tokens = rag.chat(msg, body.history)
     except Exception as e:
@@ -93,8 +104,9 @@ async def chat_stream(request: Request, body: ChatRequest):
     msg = body.message.strip()
     if not msg:
         raise HTTPException(400, "Message cannot be empty")
-    if len(msg) > MAX_MESSAGE_LENGTH:
-        raise HTTPException(400, f"Message exceeds {MAX_MESSAGE_LENGTH} character limit")
+    limit = message_limit_for(body.key)
+    if len(msg) > limit:
+        raise HTTPException(400, f"Message exceeds {limit} character limit")
 
     async def generate():
         reply_parts: list[str] = []
