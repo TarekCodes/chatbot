@@ -218,7 +218,10 @@
     <div id="test-chat-body" style="display:none">
       <div id="test-messages"></div>
       <div id="test-input-row">
-        <textarea id="test-input" rows="1" placeholder="Type a message to test the bot…"></textarea>
+        <textarea id="test-input" rows="5" placeholder="Type a message to test the bot…">Interpret the dream below using the reference material, and write it as a flowing story addressed to the dreamer as "you" — explain what each image means according to the sources, then close with a short reflection. No headings or bullets. Give me only the email body.
+
+DREAM:
+</textarea>
         <button id="test-send">Send</button>
       </div>
     </div>
@@ -874,6 +877,13 @@
   // ── Test Chat ──────────────────────────────────────────────────────────────
   var tcHistory = [];
   var tcInput   = document.getElementById('test-input');
+  var TC_DEFAULT_PROMPT = tcInput.value;
+
+  function tcResetInput() {
+    tcInput.value = TC_DEFAULT_PROMPT;
+    tcInput.style.height = 'auto';
+    tcInput.style.height = Math.min(tcInput.scrollHeight, 160) + 'px';
+  }
   var tcSend    = document.getElementById('test-send');
   var tcMsgs    = document.getElementById('test-messages');
 
@@ -916,8 +926,9 @@
 
   tcInput.addEventListener('input', function() {
     this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+    this.style.height = Math.min(this.scrollHeight, 160) + 'px';
   });
+  tcResetInput();
   tcInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); tcSendMsg(); }
   });
@@ -926,8 +937,7 @@
   async function tcSendMsg() {
     var text = tcInput.value.trim();
     if (!text || tcSend.disabled) return;
-    tcInput.value = '';
-    tcInput.style.height = 'auto';
+    tcResetInput();
     tcSend.disabled = true;
     tcAddUser(text);
     var typing = tcShowTyping();
@@ -936,7 +946,7 @@
       var res = await fetch(apiBase() + '/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history: tcHistory, model: 'gpt-5.5', provider: 'openai' })
+        body: JSON.stringify({ message: text, history: tcHistory, model: 'gpt-6-astra', provider: 'openai' })
       });
       if (!res.ok) {
         var err = await res.json().catch(function() { return {}; });
